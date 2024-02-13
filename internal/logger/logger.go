@@ -4,7 +4,7 @@ import "go.uber.org/zap"
 
 var log *zap.Logger
 
-const defaultLogLevel = "INFO"
+const defaultLogLevel = "DEBUG"
 
 func NewLogger(level string) (*zap.Logger, error) {
 	//lvl, err := zap.NewAtomicLevelAt(level)

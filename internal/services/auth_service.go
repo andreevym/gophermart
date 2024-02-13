@@ -8,7 +8,6 @@ import (
 
 	"github.com/andreevym/gofermart/internal/config"
 	"github.com/golang-jwt/jwt"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // AuthService represents a concrete implementation of the AuthService interface.
@@ -17,7 +16,10 @@ type AuthService struct {
 	jwtConfig   config.JWTConfig
 }
 
-var ErrAuthAlreadyExists = errors.New("user already exists")
+var (
+	ErrAuthAlreadyExists         = errors.New("user already exists")
+	ErrAuthWrongLoginAndPassword = errors.New("invalid username or password")
+)
 
 // NewAuthService creates a new instance of AuthService.
 func NewAuthService(userService *UserService, jwtConfig config.JWTConfig) *AuthService {
@@ -31,14 +33,16 @@ func NewAuthService(userService *UserService, jwtConfig config.JWTConfig) *AuthS
 func (a *AuthService) Login(ctx context.Context, username string, password string) (string, error) {
 	user, err := a.userService.UserRepository.GetUserByUsername(ctx, username)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("UserRepository.GetUserByUsername: %w", err)
 	}
 	if user == nil || !user.IsValidPassword(password) {
-		return "", errors.New("invalid username or password")
+		return "", ErrAuthWrongLoginAndPassword
 	}
 
 	token, err := a.GenerateToken(user.ID)
-
+	if err != nil {
+		return "", fmt.Errorf("GenerateToken: %w", err)
+	}
 	return token, nil
 }
 
@@ -49,12 +53,7 @@ func (a *AuthService) Register(ctx context.Context, username string, password st
 		return ErrAuthAlreadyExists
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return fmt.Errorf("bcrypt.GenerateFromPassword: %w", err)
-	}
-
-	err = a.userService.CreateUser(ctx, username, hashedPassword)
+	err = a.userService.CreateUser(ctx, username, password)
 	if err != nil {
 		return fmt.Errorf("create user: %w", err)
 	}
@@ -84,7 +83,7 @@ func (a *AuthService) GenerateToken(userID int64) (string, error) {
 	// Sign the token
 	tokenString, err := token.SignedString(a.jwtConfig.SecretKey)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("sign the token: %w", err)
 	}
 
 	return tokenString, nil

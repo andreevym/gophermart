@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/andreevym/gofermart/internal/services"
 )
@@ -27,6 +28,12 @@ func NewAuthMiddleware(authService *services.AuthService) *AuthMiddleware {
 // WithAuthentication implements the http.HandlerFunc interface for the AuthMiddleware.
 func (am *AuthMiddleware) WithAuthentication(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.RequestURI, "/api/user/register") ||
+			strings.Contains(r.RequestURI, "/api/user/login") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		// Extract the JWT token from the Authorization header
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {

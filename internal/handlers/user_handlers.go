@@ -5,6 +5,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -62,11 +63,11 @@ func (h *ServiceHandlers) PostRegisterUser(w http.ResponseWriter, r *http.Reques
 
 	err = h.authService.Register(r.Context(), a.Login, a.Password)
 	if err != nil {
+		logger.Logger().Warn("authService.Register", zap.Error(err))
 		if errors.Is(err, services.ErrAuthAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
 		} else if err != nil && !errors.Is(err, services.ErrAuthAlreadyExists) {
 			w.WriteHeader(http.StatusInternalServerError)
-			logger.Logger().Error("Register", zap.Error(err))
 		}
 		return
 	}
@@ -114,12 +115,17 @@ func (h *ServiceHandlers) PostLoginUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	_, err = h.authService.Login(r.Context(), a.Login, a.Password)
-	//if err == storage.ErrAuthWrongLoginAndPassword {
-	//	w.WriteHeader(http.StatusConflict)
-	//} else if err != nil && err != storage.ErrAuthAlreadyExists {
-	//	w.WriteHeader(http.StatusInternalServerError)
-	//} else {
-	//	w.WriteHeader(http.StatusOK)
-	//}
+	authToken, err := h.authService.Login(r.Context(), a.Login, a.Password)
+	if err != nil {
+		logger.Logger().Warn("authService.Login", zap.Error(err))
+		if errors.Is(err, services.ErrAuthWrongLoginAndPassword) {
+			w.WriteHeader(http.StatusConflict)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		return
+	}
+	w.Header().Add("Authorization", fmt.Sprintf("Bearer %s", authToken))
+
+	w.WriteHeader(http.StatusOK)
 }

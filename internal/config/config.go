@@ -43,6 +43,7 @@ func (c *Config) Parse() error {
 	flag.StringVar(&c.DatabaseURI, "d", "", "Database URI (overrides environment variable)")
 	flag.StringVar(&c.AccrualSystemAddress, "r", "", "Accrual System Address (overrides environment variable)")
 	flag.StringVar(&c.LogLevel, "l", "info", "Logging level [INFO, DEBUG, ERROR]")
+	flag.StringVar(&c.JWTConfig.SecretKey, "j", "secretkey", "JWTConfig SecretKey")
 
 	// Parse flags
 	flag.Parse()

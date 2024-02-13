@@ -36,12 +36,10 @@ func (us *UserService) AuthenticateUser(ctx context.Context, username string, pa
 	return user, nil
 }
 
-func (us *UserService) CreateUser(ctx context.Context, username string, hashedPassword []byte) error {
-	if len(hashedPassword) == 0 {
+func (us *UserService) CreateUser(ctx context.Context, username string, password string) error {
+	if len(password) == 0 {
 		return errors.New("password can't be empty")
 	}
-
-	password := string(hashedPassword)
 
 	// Check if the user already exists
 	_, err := us.UserRepository.GetUserByUsername(ctx, username)
