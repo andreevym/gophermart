@@ -1,16 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
 	"github.com/andreevym/gofermart/internal/config"
-	"github.com/andreevym/gofermart/internal/database"
 	"github.com/andreevym/gofermart/internal/handlers"
 	"github.com/andreevym/gofermart/internal/middleware"
 	"github.com/andreevym/gofermart/internal/repository/mem"
+	"github.com/andreevym/gofermart/internal/repository/postgres"
 	"github.com/andreevym/gofermart/internal/server"
 	"github.com/andreevym/gofermart/internal/services"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 func main() {
@@ -26,23 +28,22 @@ func main() {
 	// Print the configuration
 	cfg.Print()
 
-	// Initialize database connection
-	db, err := database.Connect(cfg.DatabaseURI)
+	ctx := context.Background()
+
+	db, err := pgxpool.Connect(ctx, cfg.DatabaseURI)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer func() {
-		_ = db.Close()
-	}()
+	defer db.Close()
 
 	// Apply database migrations
-	err = database.Migrate(db)
+	err = postgres.Migration(ctx, db)
 	if err != nil {
 		log.Fatalf("Failed to apply database migrations: %v", err)
 	}
 
 	// Create services and repositories
-	userService := services.NewUserService(mem.NewMemUserRepository())
+	userService := services.NewUserService(postgres.NewUserRepository(db))
 	orderService := services.NewOrderService(mem.NewMemOrderRepository())
 	userAccountRepository := mem.NewMemUserAccountRepository()
 	transactionService := services.NewTransactionService(mem.NewMemTransactionRepository(), userAccountRepository)
@@ -73,6 +74,6 @@ func main() {
 	}
 
 	// Run server
-	server.Run(":8080")
+	server.Run(cfg.Address)
 	server.Shutdown()
 }

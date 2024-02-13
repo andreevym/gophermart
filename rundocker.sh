@@ -18,4 +18,4 @@ export JAEGER_HOST="jaeger" # Example Jaeger host
 export DATABASE_URI="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
 
 # Run Docker Compose
-docker-compose up
+docker-compose up -d
