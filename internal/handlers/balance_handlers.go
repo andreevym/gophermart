@@ -51,6 +51,8 @@ type UserBalanceWithdrawDTO struct {
 // *   `401` — пользователь не авторизован.
 // *   `500` — внутренняя ошибка сервера.
 func (h *ServiceHandlers) GetWithdrawalsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	userID, err := middleware.GetUserID(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -204,6 +206,6 @@ type BalanceDTO struct {
 //
 // *   `401` — пользователь не авторизован.
 // *   `500` — внутренняя ошибка сервера.
-func (h *ServiceHandlers) GetBalanceHandler(writer http.ResponseWriter, request *http.Request) {
-
+func (h *ServiceHandlers) GetBalanceHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 }

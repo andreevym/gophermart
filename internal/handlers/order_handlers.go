@@ -30,6 +30,8 @@ type GetOrderByIDHandlerResponseDTO struct {
 
 // GetOrderByIDHandler GET /api/orders/{number} — получение информации о расчёте начислений баллов лояльности.
 func (h *ServiceHandlers) GetOrderByIDHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	_, err := middleware.GetUserID(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -165,6 +167,8 @@ type GetOrdersResponseDTO struct {
 //
 // Общее количество запросов информации о начислении не ограничено.
 func (h *ServiceHandlers) GetOrdersHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	userID, err := middleware.GetUserID(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
