@@ -36,28 +36,28 @@ func (us *UserService) AuthenticateUser(ctx context.Context, username string, pa
 	return user, nil
 }
 
-func (us *UserService) CreateUser(ctx context.Context, username string, password string) error {
+func (us *UserService) CreateUser(ctx context.Context, username string, password string) (*repository.User, error) {
 	if len(password) == 0 {
-		return errors.New("password can't be empty")
+		return nil, errors.New("password can't be empty")
 	}
 
 	// Check if the user already exists
 	_, err := us.UserRepository.GetUserByUsername(ctx, username)
 	if err == nil {
-		return errors.New("user already exists")
+		return nil, errors.New("user already exists")
 	}
 
 	// Create a new user
-	user := &repository.User{
+	newUser := &repository.User{
 		Username: username,
 		Password: password, // For simplicity, you should hash the password before storing it.
 	}
 
 	// Save the user to the repository
-	_, err = us.UserRepository.CreateUser(ctx, user)
+	user, err := us.UserRepository.CreateUser(ctx, newUser)
 	if err != nil {
-		return fmt.Errorf("user repository create user: %w", err)
+		return nil, fmt.Errorf("user repository create user: %w", err)
 	}
 
-	return nil
+	return user, nil
 }

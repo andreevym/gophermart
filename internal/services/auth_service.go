@@ -53,18 +53,22 @@ func (a *AuthService) Login(ctx context.Context, username string, password strin
 }
 
 // Register registers a new user.
-func (a *AuthService) Register(ctx context.Context, username string, password string) error {
+func (a *AuthService) Register(ctx context.Context, username string, password string) (string, error) {
 	_, err := a.userService.UserRepository.GetUserByUsername(ctx, username)
 	if err == nil {
-		return ErrAuthAlreadyExists
+		return "", ErrAuthAlreadyExists
 	}
 
-	err = a.userService.CreateUser(ctx, username, password)
+	user, err := a.userService.CreateUser(ctx, username, password)
 	if err != nil {
-		return fmt.Errorf("create user: %w", err)
+		return "", fmt.Errorf("create user: %w", err)
 	}
 
-	return nil
+	t, err := a.GenerateToken(user.ID)
+	if err != nil {
+		return "", fmt.Errorf("GenerateToken: %w", err)
+	}
+	return t, nil
 }
 
 // Logout invalidates a JWT token.

@@ -61,7 +61,7 @@ func (h *ServiceHandlers) PostRegisterUser(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = h.authService.Register(r.Context(), a.Login, a.Password)
+	authToken, err := h.authService.Register(r.Context(), a.Login, a.Password)
 	if err != nil {
 		logger.Logger().Warn("authService.Register", zap.Error(err))
 		if errors.Is(err, services.ErrAuthAlreadyExists) {
@@ -71,6 +71,7 @@ func (h *ServiceHandlers) PostRegisterUser(w http.ResponseWriter, r *http.Reques
 		}
 		return
 	}
+	w.Header().Add("Authorization", fmt.Sprintf("Bearer %s", authToken))
 	w.WriteHeader(http.StatusOK)
 }
 
