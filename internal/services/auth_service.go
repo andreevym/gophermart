@@ -17,6 +17,8 @@ type AuthService struct {
 	jwtConfig   config.JWTConfig
 }
 
+var ErrAuthAlreadyExists = errors.New("user already exists")
+
 // NewAuthService creates a new instance of AuthService.
 func NewAuthService(userService *UserService, jwtConfig config.JWTConfig) *AuthService {
 	return &AuthService{
@@ -44,17 +46,17 @@ func (a *AuthService) Login(ctx context.Context, username string, password strin
 func (a *AuthService) Register(ctx context.Context, username string, password string) error {
 	_, err := a.userService.UserRepository.GetUserByUsername(ctx, username)
 	if err == nil {
-		return errors.New("user already exists")
+		return ErrAuthAlreadyExists
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return fmt.Errorf("bcrypt.GenerateFromPassword: %w", err)
 	}
 
 	err = a.userService.CreateUser(ctx, username, hashedPassword)
 	if err != nil {
-		return err
+		return fmt.Errorf("create user: %w", err)
 	}
 
 	return nil

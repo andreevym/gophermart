@@ -4,8 +4,13 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
+
+	"github.com/andreevym/gofermart/internal/logger"
+	"github.com/andreevym/gofermart/internal/services"
+	"go.uber.org/zap"
 )
 
 type AuthDTO struct {
@@ -56,13 +61,16 @@ func (h *ServiceHandlers) PostRegisterUser(w http.ResponseWriter, r *http.Reques
 	}
 
 	err = h.authService.Register(r.Context(), a.Login, a.Password)
-	//if err == storage.ErrAuthAlreadyExists {
-	//	w.WriteHeader(http.StatusConflict)
-	//} else if err != nil && err != storage.ErrAuthAlreadyExists {
-	//	w.WriteHeader(http.StatusInternalServerError)
-	//} else {
-	//	w.WriteHeader(http.StatusOK)
-	//}
+	if err != nil {
+		if errors.Is(err, services.ErrAuthAlreadyExists) {
+			w.WriteHeader(http.StatusConflict)
+		} else if err != nil && !errors.Is(err, services.ErrAuthAlreadyExists) {
+			w.WriteHeader(http.StatusInternalServerError)
+			logger.Logger().Error("Register", zap.Error(err))
+		}
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 // PostLoginUser аутентификация пользователя
