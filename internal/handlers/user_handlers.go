@@ -118,7 +118,7 @@ func (h *ServiceHandlers) PostLoginUser(w http.ResponseWriter, r *http.Request) 
 	authToken, err := h.authService.Login(r.Context(), a.Login, a.Password)
 	if err != nil {
 		logger.Logger().Warn("authService.Login", zap.Error(err))
-		if errors.Is(err, services.ErrAuthWrongLoginAndPassword) {
+		if errors.Is(err, services.ErrAuthBadCredentials) {
 			w.WriteHeader(http.StatusConflict)
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)

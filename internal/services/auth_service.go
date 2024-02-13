@@ -2,9 +2,15 @@ package services
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
-	"time"
+	"os"
+	"strconv"
 
 	"github.com/andreevym/gofermart/internal/config"
 	"github.com/golang-jwt/jwt"
@@ -17,8 +23,8 @@ type AuthService struct {
 }
 
 var (
-	ErrAuthAlreadyExists         = errors.New("user already exists")
-	ErrAuthWrongLoginAndPassword = errors.New("invalid username or password")
+	ErrAuthAlreadyExists  = errors.New("user already exists")
+	ErrAuthBadCredentials = errors.New("username or password is incorrect")
 )
 
 // NewAuthService creates a new instance of AuthService.
@@ -36,7 +42,7 @@ func (a *AuthService) Login(ctx context.Context, username string, password strin
 		return "", fmt.Errorf("UserRepository.GetUserByUsername: %w", err)
 	}
 	if user == nil || !user.IsValidPassword(password) {
-		return "", ErrAuthWrongLoginAndPassword
+		return "", ErrAuthBadCredentials
 	}
 
 	token, err := a.GenerateToken(user.ID)
@@ -71,33 +77,37 @@ func (a *AuthService) Logout(tokenString string) error {
 
 // GenerateToken generates a JWT token for the given user ID.
 func (a *AuthService) GenerateToken(userID int64) (string, error) {
-	// Create the claims
-	claims := jwt.MapClaims{
-		"userID": userID,
-		"exp":    time.Now().Add(time.Hour * 24).Unix(), // Token expires in 24 hours
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, &jwt.MapClaims{
+		"userID": strconv.FormatInt(userID, 10),
+	})
+
+	var jwtSecretKey *ecdsa.PrivateKey
+	if a.jwtConfig.SecretKey == "" {
+		jwtSecretKey = GenPrivateKeyMust()
+		privateKey, err := x509.MarshalECPrivateKey(jwtSecretKey)
+		if err != nil {
+			return "", fmt.Errorf("x509.MarshalECPrivateKey: %w", err)
+		}
+		a.jwtConfig.SecretKey = string(privateKey)
+	} else {
+		var err error
+		jwtSecretKey, err = x509.ParseECPrivateKey([]byte(a.jwtConfig.SecretKey))
+		if err != nil {
+			return "", fmt.Errorf("x509.MarshalECPrivateKey: %w", err)
+		}
 	}
-
-	// Create the token
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	// Sign the token
-	tokenString, err := token.SignedString(a.jwtConfig.SecretKey)
+	t, err := token.SignedString(jwtSecretKey)
 	if err != nil {
 		return "", fmt.Errorf("sign the token: %w", err)
 	}
-
-	return tokenString, nil
+	return t, nil
 }
 
 // ValidateToken validates a JWT token and extracts the user ID.
 func (a *AuthService) ValidateToken(tokenString string) (int64, error) {
-	// Parse the token
+	privateKey, err := x509.ParseECPrivateKey([]byte(a.jwtConfig.SecretKey))
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Check the signing method
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("invalid token signing method")
-		}
-		return a.jwtConfig.SecretKey, nil
+		return &privateKey.PublicKey, nil
 	})
 	if err != nil {
 		return -1, fmt.Errorf("jwt parse: %w", err)
@@ -109,14 +119,62 @@ func (a *AuthService) ValidateToken(tokenString string) (int64, error) {
 	}
 
 	// Extract the user ID from the token claims
-	claims, ok := token.Claims.(jwt.MapClaims)
+	mapClaims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		return -1, errors.New("invalid token claims")
 	}
-	userID, ok := claims["userID"].(int64)
-	if !ok {
-		return -1, errors.New("invalid user ID in token")
+	id := mapClaims["userID"].(string)
+	userID, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return -1, fmt.Errorf("strconv.ParseInt, %s: invalid user ID in token: %w", id, err)
 	}
 
 	return userID, nil
+}
+
+func GenPrivateKeyMust() *ecdsa.PrivateKey {
+	key, err := TestGenKey()
+	if err != nil {
+		panic(err)
+	}
+	return key
+}
+
+func TestGenKey() (*ecdsa.PrivateKey, error) {
+	// Генерируем новый ECDSA ключ
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		fmt.Println("Ошибка при генерации ключа:", err)
+		return nil, err
+	}
+
+	// Кодируем приватный ключ в формат PEM
+	privateKeyBytes, err := x509.MarshalECPrivateKey(privateKey)
+	if err != nil {
+		fmt.Println("Ошибка при кодировании приватного ключа:", err)
+		return nil, err
+	}
+
+	privateKeyPEM := &pem.Block{
+		Type:  "EC PRIVATE KEY",
+		Bytes: privateKeyBytes,
+	}
+
+	// Создаем файл и сохраняем в него ключ
+	// file, err := os.Create("private.key")
+	file, err := os.Stdout, nil
+	if err != nil {
+		fmt.Println("Ошибка при создании файла:", err)
+		return nil, err
+	}
+	// defer file.Close()
+
+	err = pem.Encode(file, privateKeyPEM)
+	if err != nil {
+		fmt.Println("Ошибка при кодировании PEM-блока:", err)
+		return nil, err
+	}
+	fmt.Println("Приватный ключ сохранен в файл private.key")
+
+	return privateKey, nil
 }

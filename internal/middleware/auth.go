@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/andreevym/gofermart/internal/logger"
 	"github.com/andreevym/gofermart/internal/services"
+	"go.uber.org/zap"
 )
 
 const UserIDContextKey = "userID"
@@ -46,6 +48,7 @@ func (am *AuthMiddleware) WithAuthentication(next http.Handler) http.Handler {
 		// Validate the token and extract user ID
 		userID, err := am.authService.ValidateToken(tokenString)
 		if err != nil {
+			logger.Logger().Warn("authService.ValidateToken", zap.Error(err))
 			http.Error(w, "Invalid token", http.StatusUnauthorized)
 			return
 		}
