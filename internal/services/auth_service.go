@@ -108,6 +108,9 @@ func (a *AuthService) GenerateToken(userID int64) (string, error) {
 // ValidateToken validates a JWT token and extracts the user ID.
 func (a *AuthService) ValidateToken(tokenString string) (int64, error) {
 	privateKey, err := x509.ParseECPrivateKey([]byte(a.jwtConfig.SecretKey))
+	if err != nil {
+		return -1, fmt.Errorf("x509.ParseECPrivateKey: %w", err)
+	}
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return &privateKey.PublicKey, nil
 	})

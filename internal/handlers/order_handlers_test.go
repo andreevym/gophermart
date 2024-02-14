@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/andreevym/gofermart/internal/config"
+	"github.com/andreevym/gofermart/internal/middleware"
 	"github.com/andreevym/gofermart/internal/repository"
 	"github.com/andreevym/gofermart/internal/repository/mock"
 	"github.com/andreevym/gofermart/internal/services"
@@ -80,7 +81,7 @@ func TestPostOrdersHandler(t *testing.T) {
 
 			mw := func(h http.Handler) http.Handler {
 				fn := func(w http.ResponseWriter, r *http.Request) {
-					ctx := context.WithValue(r.Context(), "userID", testUser)
+					ctx := context.WithValue(r.Context(), middleware.UserIDContextKey, testUser)
 					h.ServeHTTP(w, r.WithContext(ctx))
 				}
 
@@ -193,7 +194,7 @@ func TestGetOrderByNumberHandler(t *testing.T) {
 
 			mw := func(h http.Handler) http.Handler {
 				fn := func(w http.ResponseWriter, r *http.Request) {
-					ctx := context.WithValue(r.Context(), "userID", testUser)
+					ctx := context.WithValue(r.Context(), middleware.UserIDContextKey, testUser)
 					h.ServeHTTP(w, r.WithContext(ctx))
 				}
 
@@ -328,7 +329,7 @@ func TestGetOrdersHandler(t *testing.T) {
 
 			mw := func(h http.Handler) http.Handler {
 				fn := func(w http.ResponseWriter, r *http.Request) {
-					ctx := context.WithValue(r.Context(), "userID", testUser)
+					ctx := context.WithValue(r.Context(), middleware.UserIDContextKey, testUser)
 					h.ServeHTTP(w, r.WithContext(ctx))
 				}
 

@@ -13,8 +13,10 @@ import (
 	"go.uber.org/zap"
 )
 
+type ContextKey int
+
 const (
-	UserIDContextKey = iota
+	UserIDContextKey ContextKey = iota
 )
 
 var ErrAuthUnauthorized = errors.New("unauthorized")
