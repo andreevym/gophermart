@@ -6,10 +6,8 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
-	"encoding/pem"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 
 	"github.com/andreevym/gofermart/internal/config"
