@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -87,10 +86,10 @@ func TestPostOrdersHandler(t *testing.T) {
 				mockOrderRepository.EXPECT().GetOrderByNumber(gomock.Any(), test.newOrderNumber).Return(nil, nil).Times(1)
 				mockOrderRepository.EXPECT().CreateOrder(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 			}
-			orderService := services.NewOrderService(mockOrderRepository)
+			orderService := services.NewOrderService(mockOrderRepository, nil)
 
 			jwtConfig := config.JWTConfig{}
-			authService := services.NewAuthService(userService, jwtConfig)
+			authService := services.NewAuthService(userService, nil, jwtConfig)
 			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil, nil)
 
 			mw := func(h http.Handler) http.Handler {
@@ -111,120 +110,6 @@ func TestPostOrdersHandler(t *testing.T) {
 
 			statusCode, _, _ := testRequest(t, ts, test.httpMethod, test.requestPath, bytes.NewBuffer([]byte(test.newOrderNumber)))
 			assert.Equal(t, test.want.statusCode, statusCode)
-		})
-	}
-}
-
-func TestGetOrderByNumberHandler(t *testing.T) {
-	type want struct {
-		statusCode int
-		body       string
-	}
-	tests := []struct {
-		name              string
-		want              want
-		requestPath       string
-		searchOrderNumber string
-		httpMethod        string
-		existsOrder       *repository.Order
-	}{
-		{
-			name: "order not found and no error",
-			want: want{
-				statusCode: http.StatusNoContent,
-			},
-			requestPath:       "/api/orders/%s",
-			searchOrderNumber: "12345678903",
-			httpMethod:        http.MethodGet,
-			existsOrder:       nil,
-		},
-		{
-			name: "order exists and no error",
-			want: want{
-				statusCode: http.StatusOK,
-				body:       "{\"number\":\"12345678903\",\"status\":\"REGISTERED\"}",
-			},
-			requestPath:       "/api/orders/%s",
-			searchOrderNumber: "12345678903",
-			httpMethod:        http.MethodGet,
-			existsOrder: &repository.Order{
-				Number: "12345678903",
-				UserID: testUser,
-				Status: RegisteredOrderStatus,
-			},
-		},
-		{
-			name: "order exists and no error",
-			want: want{
-				statusCode: http.StatusOK,
-				body:       "{\"number\":\"12345678903\",\"status\":\"PROCESSED\",\"accrual\":1}",
-			},
-			requestPath:       "/api/orders/%s",
-			searchOrderNumber: "12345678903",
-			httpMethod:        http.MethodGet,
-			existsOrder: &repository.Order{
-				Number:  "12345678903",
-				UserID:  testUser,
-				Status:  ProcessedOrderStatus,
-				Accrual: big.NewInt(1),
-			},
-		},
-		{
-			name: "order exists and no error",
-			want: want{
-				statusCode: http.StatusInternalServerError,
-				body:       "",
-			},
-			requestPath:       "/api/orders/%s",
-			searchOrderNumber: "12345678903",
-			httpMethod:        http.MethodGet,
-			existsOrder: &repository.Order{
-				Number:  "12345678903",
-				UserID:  testUser,
-				Status:  RegisteredOrderStatus,
-				Accrual: big.NewInt(1),
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			mockUserCtrl := gomock.NewController(t)
-			defer mockUserCtrl.Finish()
-			mockUserRepository := mock.NewMockUserRepository(mockUserCtrl)
-			userService := services.NewUserService(mockUserRepository)
-
-			mockOrderCtrl := gomock.NewController(t)
-			mockOrderRepository := mock.NewMockOrderRepository(mockOrderCtrl)
-			if test.existsOrder != nil {
-				mockOrderRepository.EXPECT().GetOrderByNumber(gomock.Any(), test.searchOrderNumber).Return(test.existsOrder, nil).Times(1)
-			} else {
-				mockOrderRepository.EXPECT().GetOrderByNumber(gomock.Any(), test.searchOrderNumber).Return(nil, nil).Times(1)
-			}
-			orderService := services.NewOrderService(mockOrderRepository)
-
-			jwtConfig := config.JWTConfig{}
-			authService := services.NewAuthService(userService, jwtConfig)
-			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil, nil)
-
-			mw := func(h http.Handler) http.Handler {
-				fn := func(w http.ResponseWriter, r *http.Request) {
-					ctx := context.WithValue(r.Context(), middleware.UserIDContextKey, testUser)
-					h.ServeHTTP(w, r.WithContext(ctx))
-				}
-
-				return http.HandlerFunc(fn)
-			}
-
-			// Create router with tracer
-			router := NewRouter(serviceHandlers, mw)
-
-			// Create server
-			ts := httptest.NewServer(router)
-			defer ts.Close()
-
-			statusCode, _, got := testRequest(t, ts, test.httpMethod, fmt.Sprintf(test.requestPath, test.searchOrderNumber), bytes.NewBuffer([]byte{}))
-			assert.Equal(t, test.want.statusCode, statusCode)
-			assert.Equal(t, test.want.body, got)
 		})
 	}
 }
@@ -335,10 +220,10 @@ func TestGetOrdersHandler(t *testing.T) {
 			} else {
 				mockOrderRepository.EXPECT().GetOrdersByUserID(gomock.Any(), testUser).Return(nil, nil).Times(1)
 			}
-			orderService := services.NewOrderService(mockOrderRepository)
+			orderService := services.NewOrderService(mockOrderRepository, nil)
 
 			jwtConfig := config.JWTConfig{}
-			authService := services.NewAuthService(userService, jwtConfig)
+			authService := services.NewAuthService(userService, nil, jwtConfig)
 			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil, nil)
 
 			mw := func(h http.Handler) http.Handler {

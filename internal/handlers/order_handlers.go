@@ -15,74 +15,8 @@ import (
 	"github.com/andreevym/gofermart/internal/middleware"
 	"github.com/andreevym/gofermart/internal/repository"
 	"github.com/andreevym/gofermart/internal/repository/mem"
-	"github.com/go-chi/chi"
 	"go.uber.org/zap"
 )
-
-type GetOrderByIDHandlerResponseDTO struct {
-	// Number номер заказа
-	Number string `json:"number"`
-	// Status статус расчёта начисления
-	Status string `json:"status"`
-	// Accrual рассчитанные баллы к начислению, при отсутствии начисления — поле отсутствует в ответе.
-	Accrual *big.Int `json:"accrual,omitempty"`
-}
-
-// GetOrderByIDHandler GET /api/orders/{number} — получение информации о расчёте начислений баллов лояльности.
-func (h *ServiceHandlers) GetOrderByIDHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	_, err := middleware.GetUserID(r.Context())
-	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	orderNumber := chi.URLParam(r, "orderNumber")
-
-	foundOrder, err := h.orderService.GetOrderByNumber(r.Context(), orderNumber)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	if foundOrder == nil {
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-	if foundOrder.Status == "" {
-		w.WriteHeader(http.StatusInternalServerError)
-		logger.Logger().Error(
-			"order status can't be empty",
-			zap.String("orderNumber", orderNumber),
-		)
-		return
-	}
-	// order can't be with accrual when order is not processed
-	if foundOrder.Status != ProcessedOrderStatus && foundOrder.Accrual != nil && foundOrder.Accrual.Sign() > 0 {
-		w.WriteHeader(http.StatusInternalServerError)
-		logger.Logger().Error(
-			"order can't be with accrual when order is not processed",
-			zap.String("orderNumber", orderNumber),
-		)
-		return
-	}
-	respDTO := &GetOrderByIDHandlerResponseDTO{
-		Number:  foundOrder.Number,
-		Status:  foundOrder.Status,
-		Accrual: foundOrder.Accrual,
-	}
-	bytes, err := json.Marshal(respDTO)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	_, err = w.Write(bytes)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-}
 
 const (
 	// RegisteredOrderStatus заказ зарегистрирован, но начисление не рассчитано;
@@ -163,13 +97,15 @@ type GetOrdersResponseDTO struct {
 func (h *ServiceHandlers) GetOrdersHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	userID, err := middleware.GetUserID(r.Context())
+	ctx := r.Context()
+
+	userID, err := middleware.GetUserID(ctx)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	foundOrders, err := h.orderService.OrderRepository.GetOrdersByUserID(r.Context(), userID)
+	foundOrders, err := h.orderService.OrderRepository.GetOrdersByUserID(ctx, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -248,6 +184,14 @@ func (h *ServiceHandlers) PostOrdersHandler(w http.ResponseWriter, r *http.Reque
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
+
+	err = h.orderService.WaitAccrual(orderNumber)
+	if err != nil {
+		logger.Logger().Error("wait accrual", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	existsOrder, err := h.orderService.GetOrderByNumber(r.Context(), orderNumber)
 	if err != nil && !errors.Is(err, mem.ErrOrderNotFound) {
 		w.WriteHeader(http.StatusBadRequest)

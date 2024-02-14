@@ -36,8 +36,6 @@ func NewRouter(s *ServiceHandlers, middlewares ...func(http.Handler) http.Handle
 	r.Post("/api/user/withdraw", s.PostWithdrawHandler)
 	//GET /api/user/withdrawals — получение информации о выводе средств с накопительного счёта пользователем.
 	r.Get("/api/user/withdrawals", s.GetWithdrawalsHandler)
-	// получение информации о расчёте начислений баллов лояльности.
-	r.Get("/api/orders/{orderNumber}", s.GetOrderByIDHandler)
 	r.Get("/ping", s.GetPingHandler)
 	r.Get("/", func(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set("Content-Type", "text/html")

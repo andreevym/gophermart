@@ -13,6 +13,13 @@ type UserAccountService struct {
 	transactionRepository repository.TransactionRepository
 }
 
+func NewUserAccountService(userAccountRepository repository.UserAccountRepository, transactionRepository repository.TransactionRepository) *UserAccountService {
+	return &UserAccountService{
+		userAccountRepository: userAccountRepository,
+		transactionRepository: transactionRepository,
+	}
+}
+
 func (s UserAccountService) GetCurrentBalance(ctx context.Context, userID int64) (*big.Int, error) {
 	userAccount, err := s.userAccountRepository.GetUserAccountByUserID(ctx, userID)
 	if err != nil {
@@ -36,10 +43,4 @@ func (s UserAccountService) GetWithdrawAmount(ctx context.Context, userID int64)
 	}
 
 	return withdrawAmount, nil
-}
-
-func NewUserAccountService(userAccountRepository repository.UserAccountRepository) *UserAccountService {
-	return &UserAccountService{
-		userAccountRepository: userAccountRepository,
-	}
 }

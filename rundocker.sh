@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -xe
+
 # Set environment variables
 export POSTGRES_USER="gofermart"
 export POSTGRES_PASSWORD="gofermart"

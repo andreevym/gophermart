@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/andreevym/gofermart/internal/accrual"
 	"github.com/andreevym/gofermart/internal/config"
 	"github.com/andreevym/gofermart/internal/handlers"
 	"github.com/andreevym/gofermart/internal/middleware"
@@ -42,15 +43,18 @@ func main() {
 		log.Fatalf("Failed to apply database migrations: %v", err)
 	}
 
+	accrualService := accrual.NewAccrualService(cfg.AccrualSystemAddress)
+
 	// Create services and repositories
 	userService := services.NewUserService(postgres.NewUserRepository(db))
-	orderService := services.NewOrderService(mem.NewMemOrderRepository())
+	orderService := services.NewOrderService(mem.NewMemOrderRepository(), accrualService)
 	userAccountRepository := mem.NewMemUserAccountRepository()
-	transactionService := services.NewTransactionService(mem.NewMemTransactionRepository(), userAccountRepository)
-	userAccountService := services.NewUserAccountService(userAccountRepository)
+	transactionRepository := mem.NewMemTransactionRepository()
+	transactionService := services.NewTransactionService(transactionRepository, userAccountRepository)
+	userAccountService := services.NewUserAccountService(userAccountRepository, transactionRepository)
 
 	jwtConfig := config.JWTConfig{}
-	authService := services.NewAuthService(userService, jwtConfig)
+	authService := services.NewAuthService(userService, userAccountService, jwtConfig)
 
 	serviceHandlers := handlers.NewServiceHandlers(
 		authService,

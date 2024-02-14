@@ -6,18 +6,23 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"math/big"
+	"os"
 	"strconv"
 
 	"github.com/andreevym/gofermart/internal/config"
+	"github.com/andreevym/gofermart/internal/repository"
 	"github.com/golang-jwt/jwt"
 )
 
 // AuthService represents a concrete implementation of the AuthService interface.
 type AuthService struct {
-	userService *UserService
-	jwtConfig   config.JWTConfig
+	userService        *UserService
+	userAccountService *UserAccountService
+	jwtConfig          config.JWTConfig
 }
 
 var (
@@ -26,10 +31,11 @@ var (
 )
 
 // NewAuthService creates a new instance of AuthService.
-func NewAuthService(userService *UserService, jwtConfig config.JWTConfig) *AuthService {
+func NewAuthService(userService *UserService, userAccountService *UserAccountService, jwtConfig config.JWTConfig) *AuthService {
 	return &AuthService{
-		userService: userService,
-		jwtConfig:   jwtConfig,
+		userService:        userService,
+		userAccountService: userAccountService,
+		jwtConfig:          jwtConfig,
 	}
 }
 
@@ -60,6 +66,15 @@ func (a *AuthService) Register(ctx context.Context, username string, password st
 	user, err := a.userService.CreateUser(ctx, username, password)
 	if err != nil {
 		return "", fmt.Errorf("create user: %w", err)
+	}
+
+	userAccount := &repository.UserAccount{
+		UserID:  user.ID,
+		Balance: big.NewInt(0),
+	}
+	_, err = a.userAccountService.userAccountRepository.CreateUserAccount(ctx, userAccount)
+	if err != nil {
+		return "", fmt.Errorf("CreateUserAccount: %w", err)
 	}
 
 	t, err := a.GenerateToken(user.ID)
@@ -154,4 +169,28 @@ func TestGenKey() (*ecdsa.PrivateKey, error) {
 	}
 
 	return privateKey, nil
+}
+
+func MarshalPrivateKey(privateKey *ecdsa.PrivateKey) error {
+	// Кодируем приватный ключ в формат PEM
+	privateKeyBytes, err := x509.MarshalECPrivateKey(privateKey)
+	if err != nil {
+		fmt.Println("Ошибка при кодировании приватного ключа:", err)
+		return err
+	}
+
+	privateKeyPEM := &pem.Block{
+		Type:  "EC PRIVATE KEY",
+		Bytes: privateKeyBytes,
+	}
+
+	file := os.Stdout
+	err = pem.Encode(file, privateKeyPEM)
+	if err != nil {
+		fmt.Println("Ошибка при кодировании PEM-блока:", err)
+		return err
+	}
+	fmt.Println("Приватный ключ сохранен в файл private.key")
+
+	return nil
 }
