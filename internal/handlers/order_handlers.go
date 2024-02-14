@@ -277,5 +277,4 @@ func (h *ServiceHandlers) PostOrdersHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	w.WriteHeader(http.StatusAccepted)
-	return
 }

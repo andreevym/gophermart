@@ -152,33 +152,5 @@ func TestGenKey() (*ecdsa.PrivateKey, error) {
 		return nil, err
 	}
 
-	// Кодируем приватный ключ в формат PEM
-	privateKeyBytes, err := x509.MarshalECPrivateKey(privateKey)
-	if err != nil {
-		fmt.Println("Ошибка при кодировании приватного ключа:", err)
-		return nil, err
-	}
-
-	privateKeyPEM := &pem.Block{
-		Type:  "EC PRIVATE KEY",
-		Bytes: privateKeyBytes,
-	}
-
-	// Создаем файл и сохраняем в него ключ
-	// file, err := os.Create("private.key")
-	file, err := os.Stdout, nil
-	if err != nil {
-		fmt.Println("Ошибка при создании файла:", err)
-		return nil, err
-	}
-	// defer file.Close()
-
-	err = pem.Encode(file, privateKeyPEM)
-	if err != nil {
-		fmt.Println("Ошибка при кодировании PEM-блока:", err)
-		return nil, err
-	}
-	fmt.Println("Приватный ключ сохранен в файл private.key")
-
 	return privateKey, nil
 }

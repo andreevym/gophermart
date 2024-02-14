@@ -66,7 +66,7 @@ func (h *ServiceHandlers) PostRegisterUser(w http.ResponseWriter, r *http.Reques
 		logger.Logger().Warn("authService.Register", zap.Error(err))
 		if errors.Is(err, services.ErrAuthAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
-		} else if err != nil && !errors.Is(err, services.ErrAuthAlreadyExists) {
+		} else {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 		return
