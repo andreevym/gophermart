@@ -19,19 +19,21 @@ const (
 )
 
 func (ts TransactionService) Withdraw(ctx context.Context, fromUserID int64, amount *big.Int, reason string) error {
-	fromUserAccount := &repository.UserAccount{
-		UserID:  fromUserID,
-		Balance: amount,
+	fromUserAccount, err := ts.userAccountRepository.GetUserAccountByUserID(ctx, fromUserID)
+	if err != nil {
+		return fmt.Errorf("userAccountRepository.GetUserAccountByUserID, user %d: %w", fromUserID, err)
 	}
-	toUserAccount := &repository.UserAccount{
-		UserID:  SystemUserID,
-		Balance: amount,
-	}
-	var err error
+	fromUserAccount.Balance = big.NewInt(0).Sub(fromUserAccount.Balance, amount)
 	_, err = ts.userAccountRepository.UpdateUserAccount(ctx, fromUserAccount)
 	if err != nil {
 		return fmt.Errorf("balance storage: save balance, user %d: %w", fromUserAccount.UserID, err)
 	}
+
+	toUserAccount, err := ts.userAccountRepository.GetUserAccountByUserID(ctx, SystemUserID)
+	if err != nil {
+		return fmt.Errorf("userAccountRepository.GetUserAccountByUserID, user %d: %w", SystemUserID, err)
+	}
+	toUserAccount.Balance = big.NewInt(0).Sub(toUserAccount.Balance, amount)
 	_, err = ts.userAccountRepository.UpdateUserAccount(ctx, toUserAccount)
 	if err != nil {
 		return fmt.Errorf("balance storage: save balance, user %d: %w", toUserAccount.UserID, err)
@@ -44,7 +46,6 @@ func (ts TransactionService) Withdraw(ctx context.Context, fromUserID int64, amo
 		OperationType: repository.WithdrawOperationType,
 		Reason:        reason,
 	}
-
 	_, err = ts.transactionRepository.CreateTransaction(ctx, transaction)
 	if err != nil {
 		return fmt.Errorf("transaction storage: save transaction: %w", err)

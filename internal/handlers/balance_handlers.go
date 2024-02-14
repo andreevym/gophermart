@@ -1,16 +1,24 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"io"
+	"math/big"
 	"net/http"
+	"strconv"
 
+	"github.com/andreevym/gofermart/internal/logger"
 	"github.com/andreevym/gofermart/internal/middleware"
 	"github.com/andreevym/gofermart/internal/repository"
+	"github.com/andreevym/gofermart/internal/repository/postgres"
+	"go.uber.org/zap"
 )
 
-type UserBalanceWithdrawDTO struct {
-	Order string `json:"order"` // номер заказа
-	Sum   int64  `json:"sum"`   // сумма баллов к списанию в счёт оплаты
+type UserBalanceWithdrawRequestDTO struct {
+	OrderNumber string `json:"order"` // номер заказа
+	Sum         int64  `json:"sum"`   // сумма баллов к списанию в счёт оплаты
 }
 
 // GetWithdrawalsHandler получение информации о выводе средств
@@ -22,8 +30,6 @@ type UserBalanceWithdrawDTO struct {
 //
 // Формат запроса:
 //
-// # Скопировать код
-//
 // GET /api/user/withdrawals HTTP/1.1
 // Content-Length: 0
 //
@@ -32,8 +38,6 @@ type UserBalanceWithdrawDTO struct {
 // *   `200` — успешная обработка запроса.
 //
 // Формат ответа:
-//
-// # Скопировать код
 //
 // 200 OK HTTP/1.1
 // Content-Type: application/json
@@ -118,8 +122,6 @@ func (h *ServiceHandlers) GetWithdrawalsHandler(w http.ResponseWriter, r *http.R
 //
 // Формат запроса:
 //
-// # Скопировать код
-//
 // POST /api/user/balance/withdraw HTTP/1.1
 // Content-Type: application/json
 //
@@ -138,39 +140,57 @@ func (h *ServiceHandlers) GetWithdrawalsHandler(w http.ResponseWriter, r *http.R
 // *   `422` — неверный номер заказа;
 // *   `500` — внутренняя ошибка сервера.
 func (h *ServiceHandlers) PostWithdrawHandler(w http.ResponseWriter, r *http.Request) {
-	//bytes, err := io.ReadAll(r.Body)
-	//if err != nil {
-	//	w.WriteHeader(http.StatusBadRequest)
-	//	return
-	//}
-	//var userBalanceWithdrawDTO UserBalanceWithdrawDTO
-	//err = json.Unmarshal(bytes, &userBalanceWithdrawDTO)
-	//if err != nil {
-	//	w.WriteHeader(http.StatusBadRequest)
-	//	return
-	//}
-	//value := r.Context().Value(middleware.SessionTokenKey)
-	//sessionToken, ok := value.(middleware.SessionToken)
-	//if ok {
-	//	w.WriteHeader(http.StatusUnauthorized)
-	//	return
-	//}
-	//
-	//err = h.transactionService.Withdraw(
-	//	sessionToken.UserID,
-	//	big.NewInt(userBalanceWithdrawDTO.Sum),
-	//	userBalanceWithdrawDTO.Order,
-	//)
-	//if err != nil {
-	//	logger.Logger().Error("transactionService.Withdraw", zap.Error(err))
-	//	w.WriteHeader(http.StatusBadRequest)
-	//	return
-	//}
+	ctx := r.Context()
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		logger.Logger().Warn("middleware.GetUserID", zap.Error(err))
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	bytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	var userBalanceWithdrawDTO UserBalanceWithdrawRequestDTO
+	err = json.Unmarshal(bytes, &userBalanceWithdrawDTO)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	order, err := h.orderService.GetOrderByNumber(ctx, userBalanceWithdrawDTO.OrderNumber)
+	if err != nil {
+		if errors.Is(err, postgres.ErrOrderNotFound) {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = h.transactionService.Withdraw(
+		context.Background(),
+		userID,
+		big.NewInt(userBalanceWithdrawDTO.Sum),
+		strconv.FormatInt(order.ID, 10),
+	)
+	if err != nil {
+		logger.Logger().Error("transactionService.Withdraw", zap.Error(err))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 }
 
 type BalanceDTO struct {
 	Current   float64 `json:"current"`
 	Withdrawn int     `json:"withdrawn"`
+}
+
+type GetBalanceResponseDTO struct {
+	Current   *big.Int `json:"current"`
+	Withdrawn *big.Int `json:"withdrawn"`
 }
 
 // GetBalanceHandler получение текущего баланса пользователя
@@ -182,8 +202,6 @@ type BalanceDTO struct {
 //
 // Формат запроса:
 //
-// # Скопировать код
-//
 // GET /api/user/balance HTTP/1.1
 // Content-Length: 0
 //
@@ -192,8 +210,6 @@ type BalanceDTO struct {
 // *   `200` — успешная обработка запроса.
 //
 // Формат ответа:
-//
-// # Скопировать код
 //
 // 200 OK HTTP/1.1
 // Content-Type: application/json
@@ -208,4 +224,44 @@ type BalanceDTO struct {
 // *   `500` — внутренняя ошибка сервера.
 func (h *ServiceHandlers) GetBalanceHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+
+	userID, err := middleware.GetUserID(r.Context())
+	if err != nil {
+		logger.Logger().Warn("middleware.GetUserID", zap.Error(err))
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	userAccountBalance, err := h.userAccountService.GetCurrentBalance(r.Context(), userID)
+	if err != nil {
+		logger.Logger().Warn("GetCurrentBalance", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	withdrawAmount, err := h.userAccountService.GetWithdrawAmount(r.Context(), userID)
+	if err != nil {
+		logger.Logger().Warn("GetWithdrawAmount", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	responseDTO := GetBalanceResponseDTO{
+		Current:   userAccountBalance,
+		Withdrawn: withdrawAmount,
+	}
+
+	bytes, err := json.Marshal(responseDTO)
+	if err != nil {
+		logger.Logger().Warn("marshal GetBalanceResponseDTO", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	_, err = w.Write(bytes)
+	if err != nil {
+		logger.Logger().Warn("write", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }

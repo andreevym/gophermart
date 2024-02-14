@@ -113,8 +113,6 @@ type GetOrdersResponseDTO struct {
 //
 // Формат запроса:
 //
-// # Скопировать код
-//
 // GET /api/orders/{number} HTTP/1.1
 // Content-Length: 0
 //
@@ -123,8 +121,6 @@ type GetOrdersResponseDTO struct {
 // *   `200` — успешная обработка запроса.
 //
 // Формат ответа:
-//
-// # Скопировать код
 //
 // 200 OK HTTP/1.1
 // Content-Type: application/json
@@ -152,8 +148,6 @@ type GetOrdersResponseDTO struct {
 // *   `429` — превышено количество запросов к сервису.
 //
 // Формат ответа:
-//
-// # Скопировать код
 //
 // 429 Too Many Requests HTTP/1.1
 // Content-Type: text/plain
@@ -218,8 +212,6 @@ func (h *ServiceHandlers) GetOrdersHandler(w http.ResponseWriter, r *http.Reques
 // Номер заказа может быть проверен на корректность ввода с помощью [алгоритма Луна](https://ru.wikipedia.org/wiki/Алгоритм_Луна).
 //
 // Формат запроса:
-//
-// # Скопировать код
 //
 // POST /api/user/orders HTTP/1.1
 // Content-Type: text/plain

@@ -30,8 +30,6 @@ type AuthDTO struct {
 //
 // Формат запроса:
 //
-// # Скопировать код
-//
 // POST /api/user/register HTTP/1.1
 // Content-Type: application/json
 // ...
@@ -85,8 +83,6 @@ func (h *ServiceHandlers) PostRegisterUser(w http.ResponseWriter, r *http.Reques
 // Для передачи аутентификационных данных используйте механизм cookies или HTTP-заголовок `Authorization`.
 //
 // Формат запроса:
-//
-// # Скопировать код
 //
 // POST /api/user/login HTTP/1.1
 // Content-Type: application/json
