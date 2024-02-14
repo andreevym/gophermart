@@ -262,7 +262,11 @@ func (h *ServiceHandlers) PostOrdersHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	if existsOrder != nil {
-		w.WriteHeader(http.StatusOK)
+		if existsOrder.UserID == userID {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		w.WriteHeader(http.StatusConflict)
 		return
 	}
 

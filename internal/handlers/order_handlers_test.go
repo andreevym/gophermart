@@ -43,7 +43,7 @@ func TestPostOrdersHandler(t *testing.T) {
 			existsOrder:    nil,
 		},
 		{
-			name: "order already exists",
+			name: "order already exists with same userID",
 			want: want{
 				statusCode: http.StatusOK,
 			},
@@ -53,6 +53,20 @@ func TestPostOrdersHandler(t *testing.T) {
 			existsOrder: &repository.Order{
 				Number: "12345678903",
 				UserID: testUser,
+				Status: RegisteredOrderStatus,
+			},
+		},
+		{
+			name: "order already exists with other user owner",
+			want: want{
+				statusCode: http.StatusConflict,
+			},
+			requestPath:    "/api/user/orders",
+			newOrderNumber: "12345678903",
+			httpMethod:     http.MethodPost,
+			existsOrder: &repository.Order{
+				Number: "12345678903",
+				UserID: testUser + 1,
 				Status: RegisteredOrderStatus,
 			},
 		},
