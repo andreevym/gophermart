@@ -20,7 +20,7 @@ func RequestLoggerMiddleware(h http.Handler) http.Handler {
 			return
 		}
 
-		logger.Logger().Info(
+		logger.Logger().Debug(
 			"request",
 			zap.String("method", r.Method),
 			zap.String("URI", r.RequestURI),
@@ -42,7 +42,7 @@ func RequestLoggerMiddleware(h http.Handler) http.Handler {
 			return
 		}
 
-		logger.Logger().Info(
+		logger.Logger().Debug(
 			"response",
 			zap.Int("status", r.Response.StatusCode),
 			zap.Int("status", len(bytes)),

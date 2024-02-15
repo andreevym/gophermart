@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/andreevym/gofermart/pkg/logger"
 	"github.com/caarlos0/env"
+	"go.uber.org/zap"
 )
 
 // JWTConfig represents JWT configuration.
@@ -58,9 +60,11 @@ func (c *Config) Parse() error {
 
 // Print prints the configuration to stdout.
 func (c *Config) Print() {
-	fmt.Println("Service Configuration:")
-	fmt.Printf("Run Address: %s\n", c.Address)
-	fmt.Printf("Database URI: %s\n", c.DatabaseURI)
-	fmt.Printf("Accrual System Address: %s\n", c.AccrualSystemAddress)
-	fmt.Printf("JWT Secret Key: %s\n", c.JWTConfig.SecretKey)
+	logger.Logger().Info(
+		"Service Configuration",
+		zap.String("Run Address", c.Address),
+		zap.String("Database URI", c.DatabaseURI),
+		zap.String("Accrual System Address", c.AccrualSystemAddress),
+		zap.String("JWT Secret Key", c.JWTConfig.SecretKey),
+	)
 }
