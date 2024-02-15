@@ -97,7 +97,6 @@ func (h *ServiceHandlers) GetOrdersHandler(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 
 	ctx := r.Context()
-
 	userID, err := middleware.GetUserID(ctx)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -109,6 +108,10 @@ func (h *ServiceHandlers) GetOrdersHandler(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	if len(foundOrders) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 
 	respDTOs := make([]GetOrdersResponseDTO, 0)
 	for _, foundOrder := range foundOrders {
@@ -118,16 +121,11 @@ func (h *ServiceHandlers) GetOrdersHandler(w http.ResponseWriter, r *http.Reques
 			Accrual:    foundOrder.Accrual,
 			UploadedAt: foundOrder.UploadedAt.Format(time.RFC3339),
 		}
-
 		respDTOs = append(respDTOs, resp)
 	}
 	bytes, err := json.Marshal(respDTOs)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	if len(respDTOs) == 0 {
-		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	_, err = w.Write(bytes)
@@ -203,7 +201,7 @@ func (h *ServiceHandlers) PostOrdersHandler(w http.ResponseWriter, r *http.Reque
 	newOrder := &repository.Order{
 		Number:     orderNumber,
 		UserID:     userID,
-		Status:     RegisteredOrderStatus,
+		Status:     ProcessingOrderStatus,
 		UploadedAt: time.Now(),
 	}
 	_, err = h.orderService.OrderRepository.CreateOrder(ctx, newOrder)
@@ -212,19 +210,23 @@ func (h *ServiceHandlers) PostOrdersHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	updatedOrder, err := h.orderService.WaitAccrual(newOrder.Number)
-	if err != nil {
-		logger.Logger().Error("wait accrual", zap.Error(err))
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	if updatedOrder != nil {
-		err = h.transactionService.AccrualAmount(ctx, userID, updatedOrder.Number, updatedOrder.Accrual)
+	go func() {
+		time.Sleep(10 + time.Millisecond)
+
+		updatedOrder, err := h.orderService.WaitAccrual(newOrder.Number)
 		if err != nil {
-			logger.Logger().Error("wait accrual", zap.Error(err))
+			logger.Logger().Error("order service: wait accrual", zap.Error(err))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-	}
+		if updatedOrder != nil {
+			err = h.transactionService.AccrualAmount(ctx, userID, updatedOrder.Number, updatedOrder.Accrual)
+			if err != nil {
+				logger.Logger().Error("transfer service: accrual amount", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+	}()
 	w.WriteHeader(http.StatusAccepted)
 }
