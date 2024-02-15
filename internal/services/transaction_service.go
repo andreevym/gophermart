@@ -2,65 +2,88 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/andreevym/gofermart/internal/repository"
 )
 
 type TransactionService struct {
 	transactionRepository repository.TransactionRepository
-	userAccountRepository repository.UserAccountRepository
 }
 
 const (
-	SystemUserID = 1
+	WithdrawUserID = 1
+	AccrualUserID  = 2
 )
 
-func (ts TransactionService) Withdraw(ctx context.Context, fromUserID int64, amount *big.Int, reason string) error {
-	fromUserAccount, err := ts.userAccountRepository.GetUserAccountByUserID(ctx, fromUserID)
-	if err != nil {
-		return fmt.Errorf("userAccountRepository.GetUserAccountByUserID, user %d: %w", fromUserID, err)
-	}
-	fromUserAccount.Balance = big.NewInt(0).Sub(fromUserAccount.Balance, amount)
-	_, err = ts.userAccountRepository.UpdateUserAccount(ctx, fromUserAccount)
-	if err != nil {
-		return fmt.Errorf("balance storage: save balance, user %d: %w", fromUserAccount.UserID, err)
-	}
-
-	toUserAccount, err := ts.userAccountRepository.GetUserAccountByUserID(ctx, SystemUserID)
-	if err != nil {
-		return fmt.Errorf("userAccountRepository.GetUserAccountByUserID, user %d: %w", SystemUserID, err)
-	}
-	toUserAccount.Balance = big.NewInt(0).Sub(toUserAccount.Balance, amount)
-	_, err = ts.userAccountRepository.UpdateUserAccount(ctx, toUserAccount)
-	if err != nil {
-		return fmt.Errorf("balance storage: save balance, user %d: %w", toUserAccount.UserID, err)
-	}
-
+func (s TransactionService) Withdraw(ctx context.Context, fromUserID int64, amount float32, reason string) error {
 	transaction := &repository.Transaction{
 		FromUserID:    fromUserID,
-		ToUserID:      SystemUserID,
+		ToUserID:      WithdrawUserID,
 		Amount:        amount,
 		OperationType: repository.WithdrawOperationType,
 		Reason:        reason,
 	}
-	_, err = ts.transactionRepository.CreateTransaction(ctx, transaction)
+	_, err := s.transactionRepository.CreateTransaction(ctx, transaction)
 	if err != nil {
 		return fmt.Errorf("transaction storage: save transaction: %w", err)
 	}
 	return nil
 }
 
-func (ts TransactionService) GetTransactionsByUserAndOperationType(userID int64, operationType string) ([]*repository.Transaction, error) {
-	return nil, errors.New("")
+func (s TransactionService) GetCurrentBalance(ctx context.Context, userID int64) (float32, error) {
+	transactions, err := s.transactionRepository.GetTransactionsByUserID(ctx, userID)
+	if err != nil {
+		return 0, fmt.Errorf("get user account by user id '%d': %w", userID, err)
+	}
+	var balance float32
+	for _, transaction := range transactions {
+		if transaction.FromUserID == userID {
+			balance -= transaction.Amount
+		} else if transaction.ToUserID == userID {
+			balance += transaction.Amount
+		} else {
+			panic("should not be here")
+		}
+	}
+
+	return balance, nil
 }
 
-func NewTransactionService(transactionRepository repository.TransactionRepository,
-	userAccountRepository repository.UserAccountRepository) *TransactionService {
+func (s TransactionService) GetWithdrawBalance(ctx context.Context, userID int64) (float32, error) {
+	transactions, err := s.transactionRepository.GetTransactionsByUserIDAndOperationType(ctx, userID, repository.WithdrawOperationType)
+	if err != nil {
+		return 0, fmt.Errorf("get user account by user id '%d': %w", userID, err)
+	}
+	var balance float32
+	for _, transaction := range transactions {
+		if transaction.FromUserID == userID {
+			balance += transaction.Amount
+		}
+	}
+
+	return balance, nil
+}
+
+func (s TransactionService) GetWithdrawTransaction(ctx context.Context, userID int64) ([]*repository.Transaction, error) {
+	transactions, err := s.transactionRepository.GetTransactionsByUserIDAndOperationType(ctx, userID, repository.WithdrawOperationType)
+	if err != nil {
+		return nil, fmt.Errorf("get user account by user id '%d': %w", userID, err)
+	}
+	return transactions, nil
+}
+
+func (s TransactionService) AccrualAmount(ctx context.Context, userID int64, orderID int64, accrual float32) error {
+	err := s.transactionRepository.AccrualAmount(ctx, userID, orderID, accrual)
+	if err != nil {
+		return fmt.Errorf("failed to accrual amount '%d': %w", userID, err)
+	}
+
+	return nil
+}
+
+func NewTransactionService(transactionRepository repository.TransactionRepository) *TransactionService {
 	return &TransactionService{
 		transactionRepository: transactionRepository,
-		userAccountRepository: userAccountRepository,
 	}
 }

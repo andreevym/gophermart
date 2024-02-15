@@ -33,7 +33,7 @@ func NewRouter(s *ServiceHandlers, middlewares ...func(http.Handler) http.Handle
 	//GET /api/user/balance — получение текущего баланса счёта баллов лояльности пользователя;
 	r.Get("/api/user/balance", s.GetBalanceHandler)
 	//POST /api/user/balance/withdraw — запрос на списание баллов с накопительного счёта в счёт оплаты нового заказа;
-	r.Post("/api/user/withdraw", s.PostWithdrawHandler)
+	r.Post("/api/user/balance/withdraw", s.PostWithdrawHandler)
 	//GET /api/user/withdrawals — получение информации о выводе средств с накопительного счёта пользователем.
 	r.Get("/api/user/withdrawals", s.GetWithdrawalsHandler)
 	r.Get("/ping", s.GetPingHandler)

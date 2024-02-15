@@ -5,10 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
 	"net/http"
 
-	"github.com/andreevym/gofermart/internal/logger"
+	"github.com/andreevym/gofermart/pkg/logger"
 	"go.uber.org/zap"
 )
 
@@ -24,11 +23,11 @@ func NewAccrualService(url string) *AccrualService {
 
 type OrderAccrual struct {
 	// Number номер заказа
-	Number string `json:"number"`
+	Order string `json:"order"`
 	// Status статус расчёта начисления
 	Status string `json:"status"`
 	// Accrual рассчитанные баллы к начислению, при отсутствии начисления — поле отсутствует в ответе.
-	Accrual *big.Int `json:"accrual,omitempty"`
+	Accrual float32 `json:"accrual"`
 }
 
 // GetOrderByNumber получение информации о расчёте начислений баллов лояльности.
@@ -37,7 +36,7 @@ func (as AccrualService) GetOrderByNumber(orderNumber string) (*OrderAccrual, er
 		return nil, ErrAccrualServiceDisabled
 	}
 	url := fmt.Sprintf("%s/api/orders/%s", as.url, orderNumber)
-	response, err := http.Post(url, "application/json", nil)
+	response, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("http.Post: %w", err)
 	}

@@ -2,7 +2,6 @@ package postgres_test
 
 import (
 	"context"
-	"math/big"
 	"testing"
 
 	"github.com/andreevym/gofermart/internal/repository"
@@ -21,7 +20,7 @@ func TestTransactionRepository(t *testing.T) {
 	transaction := &repository.Transaction{
 		FromUserID:    1,
 		ToUserID:      1,
-		Amount:        big.NewInt(100),
+		Amount:        100,
 		Reason:        "Test reason",
 		OperationType: "Test operation",
 	}
@@ -56,7 +55,7 @@ func TestTransactionRepository(t *testing.T) {
 		TransactionID: createdTransaction.TransactionID,
 		FromUserID:    1,
 		ToUserID:      1,
-		Amount:        big.NewInt(200),
+		Amount:        200,
 		Reason:        "Updated reason",
 		OperationType: "Updated operation",
 	}

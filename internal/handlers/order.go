@@ -6,15 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"math/big"
 	"net/http"
 	"time"
 
 	"github.com/ShiraazMoollatjie/goluhn"
-	"github.com/andreevym/gofermart/internal/logger"
 	"github.com/andreevym/gofermart/internal/middleware"
 	"github.com/andreevym/gofermart/internal/repository"
-	"github.com/andreevym/gofermart/internal/repository/mem"
+	"github.com/andreevym/gofermart/internal/repository/postgres"
+	"github.com/andreevym/gofermart/pkg/logger"
 	"go.uber.org/zap"
 )
 
@@ -35,8 +34,8 @@ type GetOrdersResponseDTO struct {
 	// Status статус расчёта начисления
 	Status string `json:"status"`
 	// Accrual рассчитанные баллы к начислению, при отсутствии начисления — поле отсутствует в ответе.
-	Accrual    *big.Int `json:"accrual,omitempty"`
-	UploadedAt string   `json:"uploaded_at"`
+	Accrual    float32 `json:"accrual,omitempty"`
+	UploadedAt string  `json:"uploaded_at"`
 }
 
 // GetOrdersHandler ### Взаимодействие с системой расчёта начислений баллов лояльности
@@ -110,6 +109,7 @@ func (h *ServiceHandlers) GetOrdersHandler(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
 	respDTOs := make([]GetOrdersResponseDTO, 0)
 	for _, foundOrder := range foundOrders {
 		resp := GetOrdersResponseDTO{
@@ -117,6 +117,24 @@ func (h *ServiceHandlers) GetOrdersHandler(w http.ResponseWriter, r *http.Reques
 			Status:     foundOrder.Status,
 			Accrual:    foundOrder.Accrual,
 			UploadedAt: foundOrder.UploadedAt.Format(time.RFC3339),
+		}
+
+		updatedOrder, err := h.orderService.WaitAccrual(foundOrder.Number)
+		if err != nil {
+			logger.Logger().Error("wait accrual", zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if updatedOrder != nil {
+			err = h.transactionService.AccrualAmount(ctx, userID, updatedOrder.ID, updatedOrder.Accrual)
+			if err != nil {
+				logger.Logger().Error("wait accrual", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			resp.Status = updatedOrder.Status
+			resp.Accrual = updatedOrder.Accrual
 		}
 
 		respDTOs = append(respDTOs, resp)
@@ -185,15 +203,8 @@ func (h *ServiceHandlers) PostOrdersHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err = h.orderService.WaitAccrual(orderNumber)
-	if err != nil {
-		logger.Logger().Error("wait accrual", zap.Error(err))
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 	existsOrder, err := h.orderService.GetOrderByNumber(r.Context(), orderNumber)
-	if err != nil && !errors.Is(err, mem.ErrOrderNotFound) {
+	if err != nil && !errors.Is(err, postgres.ErrOrderNotFound) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

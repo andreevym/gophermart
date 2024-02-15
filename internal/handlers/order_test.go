@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"context"
-	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -89,8 +88,8 @@ func TestPostOrdersHandler(t *testing.T) {
 			orderService := services.NewOrderService(mockOrderRepository, nil)
 
 			jwtConfig := config.JWTConfig{}
-			authService := services.NewAuthService(userService, nil, jwtConfig)
-			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil, nil)
+			authService := services.NewAuthService(userService, jwtConfig)
+			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil)
 
 			mw := func(h http.Handler) http.Handler {
 				fn := func(w http.ResponseWriter, r *http.Request) {
@@ -182,7 +181,7 @@ func TestGetOrdersHandler(t *testing.T) {
 					Number:     "12345678903",
 					UserID:     testUser,
 					Status:     ProcessedOrderStatus,
-					Accrual:    big.NewInt(1),
+					Accrual:    1,
 					UploadedAt: uploadedAtTime,
 				},
 			},
@@ -201,7 +200,7 @@ func TestGetOrdersHandler(t *testing.T) {
 					Number:  "12345678903",
 					UserID:  testUser,
 					Status:  ProcessingOrderStatus,
-					Accrual: big.NewInt(1),
+					Accrual: 1,
 				},
 			},
 		},
@@ -223,8 +222,8 @@ func TestGetOrdersHandler(t *testing.T) {
 			orderService := services.NewOrderService(mockOrderRepository, nil)
 
 			jwtConfig := config.JWTConfig{}
-			authService := services.NewAuthService(userService, nil, jwtConfig)
-			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil, nil)
+			authService := services.NewAuthService(userService, jwtConfig)
+			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil)
 
 			mw := func(h http.Handler) http.Handler {
 				fn := func(w http.ResponseWriter, r *http.Request) {

@@ -6,8 +6,8 @@ import (
 	"context"
 
 	"github.com/andreevym/gofermart/internal/accrual"
-	"github.com/andreevym/gofermart/internal/logger"
 	"github.com/andreevym/gofermart/internal/repository"
+	"github.com/andreevym/gofermart/pkg/logger"
 	"go.uber.org/zap"
 )
 
@@ -22,22 +22,22 @@ func (s OrderService) GetOrderByNumber(context context.Context, number string) (
 }
 
 // WaitAccrual ждем расчета начислений по заказу и переводим статус заказа
-func (s OrderService) WaitAccrual(orderNumber string) error {
+func (s OrderService) WaitAccrual(orderNumber string) (*repository.Order, error) {
 	if s.AccrualService == nil {
 		logger.Logger().Warn("WaitAccrual", zap.Error(accrual.ErrAccrualServiceDisabled))
-		return nil
+		return nil, nil
 	}
 	ctx := context.Background()
 	foundOrder, err := s.OrderRepository.GetOrderByNumber(ctx, orderNumber)
 	if err != nil {
 		logger.Logger().Error("orderService.OrderRepository.GetOrderByID", zap.Error(err))
-		return err
+		return nil, err
 	}
 
 	orderAccrual, err := s.AccrualService.GetOrderByNumber(orderNumber)
 	if err != nil {
 		logger.Logger().Error("AccrualService.GetOrderByNumber", zap.Error(err))
-		return err
+		return nil, err
 	}
 
 	foundOrder.Status = orderAccrual.Status
@@ -46,10 +46,10 @@ func (s OrderService) WaitAccrual(orderNumber string) error {
 	_, err = s.OrderRepository.UpdateOrder(ctx, foundOrder)
 	if err != nil {
 		logger.Logger().Error("orderService.OrderRepository.GetOrderByID", zap.Error(err))
-		return err
+		return nil, err
 	}
 
-	return nil
+	return foundOrder, nil
 }
 
 // NewOrderService creates a new instance of OrderService

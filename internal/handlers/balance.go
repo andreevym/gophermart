@@ -3,22 +3,24 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
-	"math/big"
 	"net/http"
-	"strconv"
+	"time"
 
-	"github.com/andreevym/gofermart/internal/logger"
 	"github.com/andreevym/gofermart/internal/middleware"
-	"github.com/andreevym/gofermart/internal/repository"
-	"github.com/andreevym/gofermart/internal/repository/postgres"
+	"github.com/andreevym/gofermart/pkg/logger"
 	"go.uber.org/zap"
 )
 
-type UserBalanceWithdrawRequestDTO struct {
-	OrderNumber string `json:"order"` // номер заказа
-	Sum         int64  `json:"sum"`   // сумма баллов к списанию в счёт оплаты
+type UserBalanceWithdrawsResponseDTO struct {
+	OrderNumber string    `json:"order"` // номер заказа
+	Sum         float32   `json:"sum"`   // сумма баллов к списанию в счёт оплаты
+	ProcessedAt time.Time `json:"processed_at"`
+}
+
+type WithdrawRequestDTO struct {
+	OrderWithdrawNumber string  `json:"order"` // номер заказа к которому привязан вывод средств
+	Sum                 float32 `json:"sum"`   // сумма баллов к списанию в счёт оплаты
 }
 
 // GetWithdrawalsHandler получение информации о выводе средств
@@ -57,22 +59,31 @@ type UserBalanceWithdrawRequestDTO struct {
 func (h *ServiceHandlers) GetWithdrawalsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	userID, err := middleware.GetUserID(r.Context())
+	ctx := r.Context()
+	userID, err := middleware.GetUserID(ctx)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	withdrawals, err := h.transactionService.GetTransactionsByUserAndOperationType(userID, repository.WithdrawOperationType)
+	transactions, err := h.transactionService.GetWithdrawTransaction(ctx, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	if len(withdrawals) == 0 {
+	if len(transactions) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	bytes, err := json.Marshal(withdrawals)
+	responseDTO := make([]*UserBalanceWithdrawsResponseDTO, 0)
+	for _, transaction := range transactions {
+		responseDTO = append(responseDTO, &UserBalanceWithdrawsResponseDTO{
+			OrderNumber: transaction.Reason,
+			Sum:         transaction.Amount,
+			ProcessedAt: transaction.CreatedAt,
+		})
+	}
+	bytes, err := json.Marshal(responseDTO)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -89,7 +100,7 @@ func (h *ServiceHandlers) GetWithdrawalsHandler(w http.ResponseWriter, r *http.R
 //
 //type Withdrawal struct {
 //	Order       string    `json:"order"`
-//	Sum         *big.Int  `json:"sum"`
+//	Sum         float32  `json:"sum"`
 //	ProcessedAt time.Time `json:"processed_at"`
 //}
 //
@@ -153,19 +164,9 @@ func (h *ServiceHandlers) PostWithdrawHandler(w http.ResponseWriter, r *http.Req
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	var userBalanceWithdrawDTO UserBalanceWithdrawRequestDTO
-	err = json.Unmarshal(bytes, &userBalanceWithdrawDTO)
+	var withdrawRequestDTO WithdrawRequestDTO
+	err = json.Unmarshal(bytes, &withdrawRequestDTO)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	order, err := h.orderService.GetOrderByNumber(ctx, userBalanceWithdrawDTO.OrderNumber)
-	if err != nil {
-		if errors.Is(err, postgres.ErrOrderNotFound) {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			return
-		}
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -173,8 +174,8 @@ func (h *ServiceHandlers) PostWithdrawHandler(w http.ResponseWriter, r *http.Req
 	err = h.transactionService.Withdraw(
 		context.Background(),
 		userID,
-		big.NewInt(userBalanceWithdrawDTO.Sum),
-		strconv.FormatInt(order.ID, 10),
+		withdrawRequestDTO.Sum,
+		withdrawRequestDTO.OrderWithdrawNumber,
 	)
 	if err != nil {
 		logger.Logger().Error("transactionService.Withdraw", zap.Error(err))
@@ -184,13 +185,13 @@ func (h *ServiceHandlers) PostWithdrawHandler(w http.ResponseWriter, r *http.Req
 }
 
 type BalanceDTO struct {
-	Current   float64 `json:"current"`
+	Current   float32 `json:"current"`
 	Withdrawn int     `json:"withdrawn"`
 }
 
 type GetBalanceResponseDTO struct {
-	Current   *big.Int `json:"current"`
-	Withdrawn *big.Int `json:"withdrawn"`
+	Current   float32 `json:"current"`
+	Withdrawn float32 `json:"withdrawn"`
 }
 
 // GetBalanceHandler получение текущего баланса пользователя
@@ -225,21 +226,22 @@ type GetBalanceResponseDTO struct {
 func (h *ServiceHandlers) GetBalanceHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	userID, err := middleware.GetUserID(r.Context())
+	ctx := r.Context()
+	userID, err := middleware.GetUserID(ctx)
 	if err != nil {
 		logger.Logger().Warn("middleware.GetUserID", zap.Error(err))
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	userAccountBalance, err := h.userAccountService.GetCurrentBalance(r.Context(), userID)
+	currentBalance, err := h.transactionService.GetCurrentBalance(ctx, userID)
 	if err != nil {
 		logger.Logger().Warn("GetCurrentBalance", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	withdrawAmount, err := h.userAccountService.GetWithdrawAmount(r.Context(), userID)
+	withdrawBalance, err := h.transactionService.GetWithdrawBalance(ctx, userID)
 	if err != nil {
 		logger.Logger().Warn("GetWithdrawAmount", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
@@ -247,8 +249,8 @@ func (h *ServiceHandlers) GetBalanceHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	responseDTO := GetBalanceResponseDTO{
-		Current:   userAccountBalance,
-		Withdrawn: withdrawAmount,
+		Current:   currentBalance,
+		Withdrawn: withdrawBalance,
 	}
 
 	bytes, err := json.Marshal(responseDTO)

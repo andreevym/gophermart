@@ -20,7 +20,7 @@ func (u User) IsValidPassword(password string) bool {
 
 // UserRepository defines the interface for user repository operations.
 //
-//go:generate mockgen -source=user.go -destination=./mock/user_mock.go -package=mock
+//go:generate mockgen -source=user.go -destination=./mock/user.go -package=mock
 type UserRepository interface {
 	CreateUser(ctx context.Context, user *User) (*User, error)
 	GetUserByID(ctx context.Context, userID int64) (*User, error)

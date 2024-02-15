@@ -2,7 +2,6 @@ package postgres_test
 
 import (
 	"context"
-	"math/big"
 	"testing"
 
 	"github.com/andreevym/gofermart/internal/repository"
@@ -19,10 +18,9 @@ func TestOrderRepository(t *testing.T) {
 
 	// Create a test order
 	order := &repository.Order{
-		Number:  "123456",
-		UserID:  1,
-		Status:  "pending",
-		Accrual: big.NewInt(100),
+		Number: "123456",
+		UserID: 1,
+		Status: "pending",
 	}
 
 	// Test CreateOrder
@@ -57,7 +55,7 @@ func TestOrderRepository(t *testing.T) {
 		Number:  "654321",
 		UserID:  1,
 		Status:  "completed",
-		Accrual: big.NewInt(200),
+		Accrual: 200,
 	}
 	updatedOrder, err := repo.UpdateOrder(context.Background(), orderToUpdate)
 	require.NoError(t, err)

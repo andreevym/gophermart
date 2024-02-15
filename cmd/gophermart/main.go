@@ -9,7 +9,6 @@ import (
 	"github.com/andreevym/gofermart/internal/config"
 	"github.com/andreevym/gofermart/internal/handlers"
 	"github.com/andreevym/gofermart/internal/middleware"
-	"github.com/andreevym/gofermart/internal/repository/mem"
 	"github.com/andreevym/gofermart/internal/repository/postgres"
 	"github.com/andreevym/gofermart/internal/server"
 	"github.com/andreevym/gofermart/internal/services"
@@ -47,21 +46,20 @@ func main() {
 
 	// Create services and repositories
 	userService := services.NewUserService(postgres.NewUserRepository(db))
-	orderService := services.NewOrderService(mem.NewMemOrderRepository(), accrualService)
-	userAccountRepository := mem.NewMemUserAccountRepository()
-	transactionRepository := mem.NewMemTransactionRepository()
-	transactionService := services.NewTransactionService(transactionRepository, userAccountRepository)
-	userAccountService := services.NewUserAccountService(userAccountRepository, transactionRepository)
+	orderService := services.NewOrderService(postgres.NewOrderRepository(db), accrualService)
+
+	transactionRepository := postgres.NewTransactionRepository(db)
+
+	transactionService := services.NewTransactionService(transactionRepository)
 
 	jwtConfig := config.JWTConfig{}
-	authService := services.NewAuthService(userService, userAccountService, jwtConfig)
+	authService := services.NewAuthService(userService, jwtConfig)
 
 	serviceHandlers := handlers.NewServiceHandlers(
 		authService,
 		userService,
 		orderService,
 		transactionService,
-		userAccountService,
 	)
 
 	// Create router with tracer

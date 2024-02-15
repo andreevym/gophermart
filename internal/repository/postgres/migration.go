@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/andreevym/gofermart/internal/logger"
+	"github.com/andreevym/gofermart/pkg/logger"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"go.uber.org/zap"
 )

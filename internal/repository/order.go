@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"math/big"
 	"time"
 )
 
@@ -12,13 +11,13 @@ type Order struct {
 	Number     string    `json:"number"`
 	UserID     int64     `json:"userId"`
 	Status     string    `json:"status"`
-	Accrual    *big.Int  `json:"accrual"`
+	Accrual    float32   `json:"accrual"`
 	UploadedAt time.Time `json:"uploaded_at"`
 }
 
 // OrderRepository represents the interface for order repository operations.
 //
-//go:generate mockgen -source=order.go -destination=./mock/order_mock.go -package=mock
+//go:generate mockgen -source=order.go -destination=./mock/order.go -package=mock
 type OrderRepository interface {
 	CreateOrder(ctx context.Context, order *Order) (*Order, error)
 	GetOrderByID(ctx context.Context, orderID int64) (*Order, error)

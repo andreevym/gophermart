@@ -9,20 +9,17 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"math/big"
 	"os"
 	"strconv"
 
 	"github.com/andreevym/gofermart/internal/config"
-	"github.com/andreevym/gofermart/internal/repository"
 	"github.com/golang-jwt/jwt"
 )
 
 // AuthService represents a concrete implementation of the AuthService interface.
 type AuthService struct {
-	userService        *UserService
-	userAccountService *UserAccountService
-	jwtConfig          config.JWTConfig
+	userService *UserService
+	jwtConfig   config.JWTConfig
 }
 
 var (
@@ -31,11 +28,10 @@ var (
 )
 
 // NewAuthService creates a new instance of AuthService.
-func NewAuthService(userService *UserService, userAccountService *UserAccountService, jwtConfig config.JWTConfig) *AuthService {
+func NewAuthService(userService *UserService, jwtConfig config.JWTConfig) *AuthService {
 	return &AuthService{
-		userService:        userService,
-		userAccountService: userAccountService,
-		jwtConfig:          jwtConfig,
+		userService: userService,
+		jwtConfig:   jwtConfig,
 	}
 }
 
@@ -66,15 +62,6 @@ func (a *AuthService) Register(ctx context.Context, username string, password st
 	user, err := a.userService.CreateUser(ctx, username, password)
 	if err != nil {
 		return "", fmt.Errorf("create user: %w", err)
-	}
-
-	userAccount := &repository.UserAccount{
-		UserID:  user.ID,
-		Balance: big.NewInt(0),
-	}
-	_, err = a.userAccountService.userAccountRepository.CreateUserAccount(ctx, userAccount)
-	if err != nil {
-		return "", fmt.Errorf("CreateUserAccount: %w", err)
 	}
 
 	t, err := a.GenerateToken(user.ID)
