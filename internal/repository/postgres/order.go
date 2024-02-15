@@ -47,8 +47,8 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, order *repository.Ord
 func (r *OrderRepository) GetOrderByID(ctx context.Context, orderID int64) (*repository.Order, error) {
 	sql := `SELECT number, user_id, status, accrual, uploaded_at FROM orders WHERE id = $1`
 	var order repository.Order
-	var accrual pgtype.Float4                 // Change type to string
-	var uploadedAtNullable pgtype.Timestamptz // Use pgtype for nullable time.Time
+	var accrual pgtype.Float4
+	var uploadedAtNullable pgtype.Timestamptz
 	err := r.db.QueryRow(ctx, sql, orderID).Scan(&order.Number, &order.UserID, &order.Status, &accrual, &uploadedAtNullable)
 	if err != nil {
 		if err.Error() == pgx.ErrNoRows.Error() {
@@ -62,11 +62,10 @@ func (r *OrderRepository) GetOrderByID(ctx context.Context, orderID int64) (*rep
 		order.Accrual = accrual.Float
 	}
 
-	// Check if uploaded_at is NULL
 	if uploadedAtNullable.Status == pgtype.Present {
-		order.UploadedAt = uploadedAtNullable.Time // Assign uploaded_at if not NULL
+		order.UploadedAt = uploadedAtNullable.Time
 	} else {
-		order.UploadedAt = time.Time{} // Set to zero time if NULL
+		order.UploadedAt = time.Time{}
 	}
 
 	return &order, nil
@@ -75,8 +74,8 @@ func (r *OrderRepository) GetOrderByID(ctx context.Context, orderID int64) (*rep
 func (r *OrderRepository) GetOrderByNumber(ctx context.Context, number string) (*repository.Order, error) {
 	sql := `SELECT id, user_id, status, accrual, uploaded_at FROM orders WHERE number = $1`
 	var order repository.Order
-	var accrual pgtype.Float4                 // Change type to string
-	var uploadedAtNullable pgtype.Timestamptz // Use pgtype for nullable time.Time
+	var accrual pgtype.Float4
+	var uploadedAtNullable pgtype.Timestamptz
 	err := r.db.QueryRow(ctx, sql, number).Scan(&order.ID, &order.UserID, &order.Status, &accrual, &uploadedAtNullable)
 	if err != nil {
 		if err.Error() == pgx.ErrNoRows.Error() {
@@ -86,16 +85,14 @@ func (r *OrderRepository) GetOrderByNumber(ctx context.Context, number string) (
 	}
 
 	order.Number = number
-	// Check if accrual is not NULL
 	if accrual.Status == pgtype.Present {
 		order.Accrual = accrual.Float
 	}
 
-	// Check if uploaded_at is not NULL
 	if uploadedAtNullable.Status == pgtype.Present {
-		order.UploadedAt = uploadedAtNullable.Time // Assign uploaded_at if not NULL
+		order.UploadedAt = uploadedAtNullable.Time
 	} else {
-		order.UploadedAt = time.Time{} // Set to zero time if NULL
+		order.UploadedAt = time.Time{}
 	}
 
 	return &order, nil
@@ -141,16 +138,20 @@ func (r *OrderRepository) GetOrdersByUserID(ctx context.Context, userID int64) (
 	for rows.Next() {
 		var uploadedAtNullable pgtype.Timestamptz
 		var order repository.Order
-		err := rows.Scan(&order.ID, &order.Number, &order.UserID, &order.Status, &order.Accrual, &uploadedAtNullable)
+		var accrual pgtype.Float4
+		err := rows.Scan(&order.ID, &order.Number, &order.UserID, &order.Status, &accrual, &uploadedAtNullable)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan order row: %v", err)
 		}
 
-		// Check if uploaded_at is not NULL
+		if accrual.Status == pgtype.Present {
+			order.Accrual = accrual.Float
+		}
+
 		if uploadedAtNullable.Status == pgtype.Present {
-			order.UploadedAt = uploadedAtNullable.Time // Assign uploaded_at if not NULL
+			order.UploadedAt = uploadedAtNullable.Time
 		} else {
-			order.UploadedAt = time.Time{} // Set to zero time if NULL
+			order.UploadedAt = time.Time{}
 		}
 
 		orders = append(orders, &order)
