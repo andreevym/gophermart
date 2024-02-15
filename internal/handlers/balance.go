@@ -154,19 +154,21 @@ func (h *ServiceHandlers) PostWithdrawHandler(w http.ResponseWriter, r *http.Req
 	ctx := r.Context()
 	userID, err := middleware.GetUserID(ctx)
 	if err != nil {
-		logger.Logger().Warn("middleware.GetUserID", zap.Error(err))
+		logger.Logger().Debug("middleware.GetUserID", zap.Error(err))
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	bytes, err := io.ReadAll(r.Body)
 	if err != nil {
+		logger.Logger().Debug("io.ReadAll", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	var withdrawRequestDTO WithdrawRequestDTO
 	err = json.Unmarshal(bytes, &withdrawRequestDTO)
 	if err != nil {
+		logger.Logger().Debug("json.Unmarshal", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -178,7 +180,7 @@ func (h *ServiceHandlers) PostWithdrawHandler(w http.ResponseWriter, r *http.Req
 		withdrawRequestDTO.OrderWithdrawNumber,
 	)
 	if err != nil {
-		logger.Logger().Error("transactionService.Withdraw", zap.Error(err))
+		logger.Logger().Debug("transactionService.Withdraw", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

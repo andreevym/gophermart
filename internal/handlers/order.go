@@ -3,6 +3,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -211,6 +212,7 @@ func (h *ServiceHandlers) PostOrdersHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	go func() {
+		ctx := context.Background()
 		time.Sleep(10 + time.Millisecond)
 
 		updatedOrder, err := h.orderService.WaitAccrual(newOrder.Number)

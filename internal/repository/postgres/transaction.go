@@ -78,8 +78,8 @@ func (r *TransactionRepository) GetTransactionByID(ctx context.Context, transact
 }
 
 func (r *TransactionRepository) GetTransactionsByUserIDAndOperationType(ctx context.Context, userID int64, operationType string) ([]*repository.Transaction, error) {
-	sql := `SELECT transaction_id, from_user_id, to_user_id, amount, order_number 
-		FROM transactions WHERE (from_user_id = $1 OR to_user_id = $1) AND operation_type = $2`
+	sql := `SELECT transaction_id, from_user_id, to_user_id, amount, order_number, created_at
+		FROM transactions WHERE (from_user_id = $1 OR to_user_id = $1) AND operation_type = $2 ORDER BY created_at DESC`
 	rows, err := r.db.Query(ctx, sql, userID, operationType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transaction: %v", err)
@@ -90,7 +90,7 @@ func (r *TransactionRepository) GetTransactionsByUserIDAndOperationType(ctx cont
 	for rows.Next() {
 		var transaction repository.Transaction
 		err := rows.Scan(&transaction.TransactionID, &transaction.FromUserID, &transaction.ToUserID,
-			&transaction.Amount, &transaction.OrderNumber)
+			&transaction.Amount, &transaction.OrderNumber, &transaction.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan transaction row: %v", err)
 		}
