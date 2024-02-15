@@ -21,7 +21,7 @@ func TestTransactionRepository(t *testing.T) {
 		FromUserID:    1,
 		ToUserID:      1,
 		Amount:        100,
-		Reason:        "Test reason",
+		OrderNumber:   "821546",
 		OperationType: "Test operation",
 	}
 
@@ -41,7 +41,7 @@ func TestTransactionRepository(t *testing.T) {
 	require.NotNil(t, retrievedTransaction)
 	require.Equal(t, createdTransaction.TransactionID, retrievedTransaction.TransactionID)
 	require.Equal(t, createdTransaction.Amount, retrievedTransaction.Amount)
-	require.Equal(t, createdTransaction.Reason, retrievedTransaction.Reason)
+	require.Equal(t, createdTransaction.OrderNumber, retrievedTransaction.OrderNumber)
 	require.Equal(t, createdTransaction.OperationType, retrievedTransaction.OperationType)
 
 	// Test GetTransactionByUserIDAndOperationType
@@ -56,7 +56,7 @@ func TestTransactionRepository(t *testing.T) {
 		FromUserID:    1,
 		ToUserID:      1,
 		Amount:        200,
-		Reason:        "Updated reason",
+		OrderNumber:   "821546",
 		OperationType: "Updated operation",
 	}
 	updatedTransaction, err := repo.UpdateTransaction(context.Background(), transactionToUpdate)

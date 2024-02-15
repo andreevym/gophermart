@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 
 	"github.com/andreevym/gofermart/internal/repository"
 	"github.com/jackc/pgx"
@@ -29,8 +28,8 @@ func NewTransactionRepository(db *pgxpool.Pool) *TransactionRepository {
 
 func (r *TransactionRepository) CreateTransaction(ctx context.Context, transaction *repository.Transaction) (*repository.Transaction, error) {
 	var transactionID int64
-	sql := `INSERT INTO transactions (from_user_id, to_user_id, amount, reason, operation_type) VALUES ($1, $2, $3, $4, $5) RETURNING transaction_id`
-	err := r.db.QueryRow(ctx, sql, transaction.FromUserID, transaction.ToUserID, transaction.Amount, transaction.Reason, transaction.OperationType).Scan(&transactionID)
+	sql := `INSERT INTO transactions (from_user_id, to_user_id, amount, order_number, operation_type) VALUES ($1, $2, $3, $4, $5) RETURNING transaction_id`
+	err := r.db.QueryRow(ctx, sql, transaction.FromUserID, transaction.ToUserID, transaction.Amount, transaction.OrderNumber, transaction.OperationType).Scan(&transactionID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create transaction: %v", err)
 	}
@@ -39,21 +38,21 @@ func (r *TransactionRepository) CreateTransaction(ctx context.Context, transacti
 	return transaction, nil
 }
 
-func (r TransactionRepository) AccrualAmount(ctx context.Context, userID int64, orderID int64, accrual float32) error {
+func (r TransactionRepository) AccrualAmount(ctx context.Context, userID int64, orderNumber string, accrual float32) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin: %w", err)
 	}
 	defer tx.Commit(ctx)
 
-	insertTxsql := `INSERT INTO transactions (from_user_id, to_user_id, amount, reason, operation_type) VALUES ($1, $2, $3, $4, $5)`
-	_, err = tx.Exec(ctx, insertTxsql, AccrualUserID, userID, accrual, strconv.FormatInt(orderID, 10), repository.WithdrawOperationType)
+	insertTxsql := `INSERT INTO transactions (from_user_id, to_user_id, amount, order_number, operation_type) VALUES ($1, $2, $3, $4, $5)`
+	_, err = tx.Exec(ctx, insertTxsql, AccrualUserID, userID, accrual, orderNumber, repository.WithdrawOperationType)
 	if err != nil {
 		return fmt.Errorf("failed to create transaction: %v", err)
 	}
 
-	sql := `UPDATE orders SET status = $1, accrual = $2 WHERE id = $3`
-	_, err = tx.Exec(ctx, sql, ProcessedOrderStatus, accrual, orderID)
+	sql := `UPDATE orders SET status = $1, accrual = $2 WHERE number = $3`
+	_, err = tx.Exec(ctx, sql, ProcessedOrderStatus, accrual, orderNumber)
 	if err != nil {
 		return fmt.Errorf("failed to update order, sql %s: %v", sql, err)
 	}
@@ -62,9 +61,9 @@ func (r TransactionRepository) AccrualAmount(ctx context.Context, userID int64, 
 }
 
 func (r *TransactionRepository) GetTransactionByID(ctx context.Context, transactionID int64) (*repository.Transaction, error) {
-	sql := `SELECT from_user_id, to_user_id, amount, reason, operation_type FROM transactions WHERE transaction_id = $1`
+	sql := `SELECT from_user_id, to_user_id, amount, order_number, operation_type FROM transactions WHERE transaction_id = $1`
 	var transaction repository.Transaction
-	err := r.db.QueryRow(ctx, sql, transactionID).Scan(&transaction.FromUserID, &transaction.ToUserID, &transaction.Amount, &transaction.Reason,
+	err := r.db.QueryRow(ctx, sql, transactionID).Scan(&transaction.FromUserID, &transaction.ToUserID, &transaction.Amount, &transaction.OrderNumber,
 		&transaction.OperationType)
 	if err != nil {
 		if err.Error() == pgx.ErrNoRows.Error() {
@@ -79,7 +78,7 @@ func (r *TransactionRepository) GetTransactionByID(ctx context.Context, transact
 }
 
 func (r *TransactionRepository) GetTransactionsByUserIDAndOperationType(ctx context.Context, userID int64, operationType string) ([]*repository.Transaction, error) {
-	sql := `SELECT transaction_id, from_user_id, to_user_id, amount, reason 
+	sql := `SELECT transaction_id, from_user_id, to_user_id, amount, order_number 
 		FROM transactions WHERE (from_user_id = $1 OR to_user_id = $1) AND operation_type = $2`
 	rows, err := r.db.Query(ctx, sql, userID, operationType)
 	if err != nil {
@@ -91,7 +90,7 @@ func (r *TransactionRepository) GetTransactionsByUserIDAndOperationType(ctx cont
 	for rows.Next() {
 		var transaction repository.Transaction
 		err := rows.Scan(&transaction.TransactionID, &transaction.FromUserID, &transaction.ToUserID,
-			&transaction.Amount, &transaction.Reason)
+			&transaction.Amount, &transaction.OrderNumber)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan transaction row: %v", err)
 		}
@@ -104,7 +103,7 @@ func (r *TransactionRepository) GetTransactionsByUserIDAndOperationType(ctx cont
 }
 
 func (r *TransactionRepository) GetTransactionsByUserID(ctx context.Context, userID int64) ([]*repository.Transaction, error) {
-	sql := `SELECT transaction_id, from_user_id, to_user_id, amount, reason, operation_type
+	sql := `SELECT transaction_id, from_user_id, to_user_id, amount, order_number, operation_type
 		FROM transactions WHERE from_user_id = $1 OR to_user_id = $1`
 	rows, err := r.db.Query(ctx, sql, userID)
 	if err != nil {
@@ -116,7 +115,7 @@ func (r *TransactionRepository) GetTransactionsByUserID(ctx context.Context, use
 	for rows.Next() {
 		var transaction repository.Transaction
 		err := rows.Scan(&transaction.TransactionID, &transaction.FromUserID, &transaction.ToUserID,
-			&transaction.Amount, &transaction.Reason, &transaction.OperationType)
+			&transaction.Amount, &transaction.OrderNumber, &transaction.OperationType)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan transaction row: %v", err)
 		}
@@ -128,8 +127,8 @@ func (r *TransactionRepository) GetTransactionsByUserID(ctx context.Context, use
 }
 
 func (r *TransactionRepository) UpdateTransaction(ctx context.Context, transaction *repository.Transaction) (*repository.Transaction, error) {
-	sql := `UPDATE transactions SET from_user_id = $1, to_user_id = $2, amount = $3, reason = $4, operation_type = $5 WHERE transaction_id = $6`
-	_, err := r.db.Exec(ctx, sql, transaction.FromUserID, transaction.ToUserID, transaction.Amount, transaction.Reason, transaction.OperationType, transaction.TransactionID)
+	sql := `UPDATE transactions SET from_user_id = $1, to_user_id = $2, amount = $3, order_number = $4, operation_type = $5 WHERE transaction_id = $6`
+	_, err := r.db.Exec(ctx, sql, transaction.FromUserID, transaction.ToUserID, transaction.Amount, transaction.OrderNumber, transaction.OperationType, transaction.TransactionID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update transaction: %v", err)
 	}

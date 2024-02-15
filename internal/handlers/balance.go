@@ -12,10 +12,10 @@ import (
 	"go.uber.org/zap"
 )
 
-type UserBalanceWithdrawsResponseDTO struct {
-	OrderNumber string    `json:"order"` // номер заказа
-	Sum         float32   `json:"sum"`   // сумма баллов к списанию в счёт оплаты
-	ProcessedAt time.Time `json:"processed_at"`
+type userWithdrawal struct {
+	OrderWithdrawNumber string    `json:"order"` // номер заказа к которому привязан вывод средств
+	Sum                 float32   `json:"sum"`   // сумма баллов к списанию в счёт оплаты
+	ProcessedAt         time.Time `json:"processed_at"`
 }
 
 type WithdrawRequestDTO struct {
@@ -75,15 +75,15 @@ func (h *ServiceHandlers) GetWithdrawalsHandler(w http.ResponseWriter, r *http.R
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	responseDTO := make([]*UserBalanceWithdrawsResponseDTO, 0)
+	userWithdrawals := make([]*userWithdrawal, 0)
 	for _, transaction := range transactions {
-		responseDTO = append(responseDTO, &UserBalanceWithdrawsResponseDTO{
-			OrderNumber: transaction.Reason,
-			Sum:         transaction.Amount,
-			ProcessedAt: transaction.CreatedAt,
+		userWithdrawals = append(userWithdrawals, &userWithdrawal{
+			OrderWithdrawNumber: transaction.OrderNumber,
+			Sum:                 transaction.Amount,
+			ProcessedAt:         transaction.CreatedAt,
 		})
 	}
-	bytes, err := json.Marshal(responseDTO)
+	bytes, err := json.Marshal(userWithdrawals)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -192,6 +192,11 @@ type BalanceDTO struct {
 type GetBalanceResponseDTO struct {
 	Current   float32 `json:"current"`
 	Withdrawn float32 `json:"withdrawn"`
+}
+
+type GetWithdrawResponseDTO struct {
+	Order string `json:"order"`
+	Sum   int    `json:"sum"`
 }
 
 // GetBalanceHandler получение текущего баланса пользователя

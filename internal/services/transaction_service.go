@@ -16,13 +16,13 @@ const (
 	AccrualUserID  = 2
 )
 
-func (s TransactionService) Withdraw(ctx context.Context, fromUserID int64, amount float32, reason string) error {
+func (s TransactionService) Withdraw(ctx context.Context, fromUserID int64, amount float32, orderNumber string) error {
 	transaction := &repository.Transaction{
 		FromUserID:    fromUserID,
 		ToUserID:      WithdrawUserID,
 		Amount:        amount,
 		OperationType: repository.WithdrawOperationType,
-		Reason:        reason,
+		OrderNumber:   orderNumber,
 	}
 	_, err := s.transactionRepository.CreateTransaction(ctx, transaction)
 	if err != nil {
@@ -73,8 +73,8 @@ func (s TransactionService) GetWithdrawTransaction(ctx context.Context, userID i
 	return transactions, nil
 }
 
-func (s TransactionService) AccrualAmount(ctx context.Context, userID int64, orderID int64, accrual float32) error {
-	err := s.transactionRepository.AccrualAmount(ctx, userID, orderID, accrual)
+func (s TransactionService) AccrualAmount(ctx context.Context, userID int64, orderNumber string, accrual float32) error {
+	err := s.transactionRepository.AccrualAmount(ctx, userID, orderNumber, accrual)
 	if err != nil {
 		return fmt.Errorf("failed to accrual amount '%d': %w", userID, err)
 	}

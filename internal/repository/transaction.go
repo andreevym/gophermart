@@ -15,7 +15,7 @@ type Transaction struct {
 	FromUserID    int64     `json:"fromUserId"`
 	ToUserID      int64     `json:"toUserId"`
 	Amount        float32   `json:"amount"`
-	Reason        string    `json:"reason"`
+	OrderNumber   string    `json:"order_number"`
 	OperationType string    `json:"operationType"`
 	CreatedAt     time.Time `json:"createdAt"`
 }
@@ -29,6 +29,6 @@ type TransactionRepository interface {
 	GetTransactionsByUserIDAndOperationType(ctx context.Context, userID int64, operationType string) ([]*Transaction, error)
 	UpdateTransaction(ctx context.Context, transaction *Transaction) (*Transaction, error)
 	DeleteTransaction(ctx context.Context, transactionID int64) error
-	AccrualAmount(ctx context.Context, userID int64, orderID int64, accrual float32) error
+	AccrualAmount(ctx context.Context, userID int64, orderNumber string, accrual float32) error
 	GetTransactionsByUserID(ctx context.Context, userID int64) ([]*Transaction, error)
 }

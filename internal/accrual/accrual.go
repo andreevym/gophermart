@@ -6,9 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-
-	"github.com/andreevym/gofermart/pkg/logger"
-	"go.uber.org/zap"
 )
 
 var ErrAccrualServiceDisabled = errors.New("accrual service is disabled because url is not set")
@@ -41,12 +38,7 @@ func (as AccrualService) GetOrderByNumber(orderNumber string) (*OrderAccrual, er
 		return nil, fmt.Errorf("http.Post: %w", err)
 	}
 
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			logger.Logger().Error("failed to close resp body", zap.Error(err))
-		}
-	}(response.Body)
+	defer response.Body.Close()
 
 	readAll, err := io.ReadAll(response.Body)
 	if err != nil {

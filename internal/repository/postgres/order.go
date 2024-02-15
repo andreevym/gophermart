@@ -25,31 +25,29 @@ func NewOrderRepository(db *pgxpool.Pool) *OrderRepository {
 }
 
 func (r *OrderRepository) CreateOrder(ctx context.Context, order *repository.Order) (*repository.Order, error) {
-	var orderID int64
 	if order.UploadedAt.IsZero() {
-		sql := `INSERT INTO orders (number, user_id, status) VALUES ($1, $2, $3) RETURNING id`
-		err := r.db.QueryRow(ctx, sql, order.Number, order.UserID, order.Status).Scan(&orderID)
+		sql := `INSERT INTO orders (number, user_id, status) VALUES ($1, $2, $3)`
+		_, err := r.db.Exec(ctx, sql, order.Number, order.UserID, order.Status)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create order: %v", err)
 		}
 	} else {
-		sql := `INSERT INTO orders (number, user_id, status, uploaded_at) VALUES ($1, $2, $3, $4, $5) RETURNING id`
-		err := r.db.QueryRow(ctx, sql, order.Number, order.UserID, order.Status, order.UploadedAt).Scan(&orderID)
+		sql := `INSERT INTO orders (number, user_id, status, uploaded_at) VALUES ($1, $2, $3, $4)`
+		_, err := r.db.Exec(ctx, sql, order.Number, order.UserID, order.Status, order.UploadedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create order: %v", err)
 		}
 	}
 
-	order.ID = orderID
 	return order, nil
 }
 
-func (r *OrderRepository) GetOrderByID(ctx context.Context, orderID int64) (*repository.Order, error) {
-	sql := `SELECT number, user_id, status, accrual, uploaded_at FROM orders WHERE id = $1`
+func (r *OrderRepository) GetOrderByNumber(ctx context.Context, orderNumber string) (*repository.Order, error) {
+	sql := `SELECT user_id, status, accrual, uploaded_at FROM orders WHERE number = $1`
 	var order repository.Order
 	var accrual pgtype.Float4
 	var uploadedAtNullable pgtype.Timestamptz
-	err := r.db.QueryRow(ctx, sql, orderID).Scan(&order.Number, &order.UserID, &order.Status, &accrual, &uploadedAtNullable)
+	err := r.db.QueryRow(ctx, sql, orderNumber).Scan(&order.UserID, &order.Status, &accrual, &uploadedAtNullable)
 	if err != nil {
 		if err.Error() == pgx.ErrNoRows.Error() {
 			return nil, ErrOrderNotFound
@@ -57,34 +55,7 @@ func (r *OrderRepository) GetOrderByID(ctx context.Context, orderID int64) (*rep
 		return nil, fmt.Errorf("failed to get order: %v", err)
 	}
 
-	order.ID = orderID
-	if accrual.Status == pgtype.Present {
-		order.Accrual = accrual.Float
-	}
-
-	if uploadedAtNullable.Status == pgtype.Present {
-		order.UploadedAt = uploadedAtNullable.Time
-	} else {
-		order.UploadedAt = time.Time{}
-	}
-
-	return &order, nil
-}
-
-func (r *OrderRepository) GetOrderByNumber(ctx context.Context, number string) (*repository.Order, error) {
-	sql := `SELECT id, user_id, status, accrual, uploaded_at FROM orders WHERE number = $1`
-	var order repository.Order
-	var accrual pgtype.Float4
-	var uploadedAtNullable pgtype.Timestamptz
-	err := r.db.QueryRow(ctx, sql, number).Scan(&order.ID, &order.UserID, &order.Status, &accrual, &uploadedAtNullable)
-	if err != nil {
-		if err.Error() == pgx.ErrNoRows.Error() {
-			return nil, ErrOrderNotFound
-		}
-		return nil, fmt.Errorf("failed to get order: %v", err)
-	}
-
-	order.Number = number
+	order.Number = orderNumber
 	if accrual.Status == pgtype.Present {
 		order.Accrual = accrual.Float
 	}
@@ -100,14 +71,14 @@ func (r *OrderRepository) GetOrderByNumber(ctx context.Context, number string) (
 
 func (r *OrderRepository) UpdateOrder(ctx context.Context, order *repository.Order) (*repository.Order, error) {
 	if order.UploadedAt.IsZero() {
-		sql := `UPDATE orders SET number = $1, user_id = $2, status = $3, accrual = $4 WHERE id = $5`
-		_, err := r.db.Exec(ctx, sql, order.Number, order.UserID, order.Status, order.Accrual, order.ID)
+		sql := `UPDATE orders SET user_id = $1, status = $2, accrual = $3 WHERE number = $4`
+		_, err := r.db.Exec(ctx, sql, order.UserID, order.Status, order.Accrual, order.Number)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update order, sql %s: %v", sql, err)
 		}
 	} else {
-		sql := `UPDATE orders SET number = $1, user_id = $2, status = $3, accrual = $4, uploaded_at = $5 WHERE id = $6`
-		_, err := r.db.Exec(ctx, sql, order.Number, order.UserID, order.Status, order.Accrual, order.UploadedAt, order.ID)
+		sql := `UPDATE orders SET user_id = $1, status = $2, accrual = $3, uploaded_at = $4 WHERE id = $5`
+		_, err := r.db.Exec(ctx, sql, order.UserID, order.Status, order.Accrual, order.UploadedAt, order.Number)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update order, sql %s: %v", sql, err)
 		}
@@ -116,9 +87,9 @@ func (r *OrderRepository) UpdateOrder(ctx context.Context, order *repository.Ord
 	return order, nil
 }
 
-func (r *OrderRepository) DeleteOrder(ctx context.Context, orderID int64) error {
-	sql := `DELETE FROM orders WHERE id = $1`
-	_, err := r.db.Exec(ctx, sql, orderID)
+func (r *OrderRepository) DeleteOrder(ctx context.Context, orderNumber string) error {
+	sql := `DELETE FROM orders WHERE number = $1`
+	_, err := r.db.Exec(ctx, sql, orderNumber)
 	if err != nil {
 		return fmt.Errorf("failed to delete order: %v", err)
 	}
@@ -127,7 +98,7 @@ func (r *OrderRepository) DeleteOrder(ctx context.Context, orderID int64) error 
 }
 
 func (r *OrderRepository) GetOrdersByUserID(ctx context.Context, userID int64) ([]*repository.Order, error) {
-	sql := `SELECT id, number, user_id, status, accrual, uploaded_at FROM orders WHERE user_id = $1 ORDER BY uploaded_at`
+	sql := `SELECT number, user_id, status, accrual, uploaded_at FROM orders WHERE user_id = $1 ORDER BY uploaded_at`
 	rows, err := r.db.Query(ctx, sql, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get orders: %v", err)
@@ -139,7 +110,7 @@ func (r *OrderRepository) GetOrdersByUserID(ctx context.Context, userID int64) (
 		var uploadedAtNullable pgtype.Timestamptz
 		var order repository.Order
 		var accrual pgtype.Float4
-		err := rows.Scan(&order.ID, &order.Number, &order.UserID, &order.Status, &accrual, &uploadedAtNullable)
+		err := rows.Scan(&order.Number, &order.UserID, &order.Status, &accrual, &uploadedAtNullable)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan order row: %v", err)
 		}

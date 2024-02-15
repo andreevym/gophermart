@@ -35,7 +35,7 @@ type GetOrdersResponseDTO struct {
 	Status string `json:"status"`
 	// Accrual рассчитанные баллы к начислению, при отсутствии начисления — поле отсутствует в ответе.
 	Accrual    float32 `json:"accrual,omitempty"`
-	UploadedAt string  `json:"uploaded_at"`
+	UploadedAt string  `json:"uploaded_at,omitempty"`
 }
 
 // GetOrdersHandler ### Взаимодействие с системой расчёта начислений баллов лояльности
@@ -119,24 +119,6 @@ func (h *ServiceHandlers) GetOrdersHandler(w http.ResponseWriter, r *http.Reques
 			UploadedAt: foundOrder.UploadedAt.Format(time.RFC3339),
 		}
 
-		updatedOrder, err := h.orderService.WaitAccrual(foundOrder.Number)
-		if err != nil {
-			logger.Logger().Error("wait accrual", zap.Error(err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if updatedOrder != nil {
-			err = h.transactionService.AccrualAmount(ctx, userID, updatedOrder.ID, updatedOrder.Accrual)
-			if err != nil {
-				logger.Logger().Error("wait accrual", zap.Error(err))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			resp.Status = updatedOrder.Status
-			resp.Accrual = updatedOrder.Accrual
-		}
-
 		respDTOs = append(respDTOs, resp)
 	}
 	bytes, err := json.Marshal(respDTOs)
@@ -183,7 +165,8 @@ func (h *ServiceHandlers) GetOrdersHandler(w http.ResponseWriter, r *http.Reques
 // *   `422` — неверный формат номера заказа;
 // *   `500` — внутренняя ошибка сервера.
 func (h *ServiceHandlers) PostOrdersHandler(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserID(r.Context())
+	ctx := r.Context()
+	userID, err := middleware.GetUserID(ctx)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -203,7 +186,7 @@ func (h *ServiceHandlers) PostOrdersHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	existsOrder, err := h.orderService.GetOrderByNumber(r.Context(), orderNumber)
+	existsOrder, err := h.orderService.GetOrderByNumber(ctx, orderNumber)
 	if err != nil && !errors.Is(err, postgres.ErrOrderNotFound) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -218,14 +201,30 @@ func (h *ServiceHandlers) PostOrdersHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	newOrder := &repository.Order{
-		Number: orderNumber,
-		UserID: userID,
-		Status: RegisteredOrderStatus,
+		Number:     orderNumber,
+		UserID:     userID,
+		Status:     RegisteredOrderStatus,
+		UploadedAt: time.Now(),
 	}
-	_, err = h.orderService.OrderRepository.CreateOrder(r.Context(), newOrder)
+	_, err = h.orderService.OrderRepository.CreateOrder(ctx, newOrder)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
+	}
+
+	updatedOrder, err := h.orderService.WaitAccrual(newOrder.Number)
+	if err != nil {
+		logger.Logger().Error("wait accrual", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if updatedOrder != nil {
+		err = h.transactionService.AccrualAmount(ctx, userID, updatedOrder.Number, updatedOrder.Accrual)
+		if err != nil {
+			logger.Logger().Error("wait accrual", zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 	w.WriteHeader(http.StatusAccepted)
 }

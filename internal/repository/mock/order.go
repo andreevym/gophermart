@@ -51,32 +51,17 @@ func (mr *MockOrderRepositoryMockRecorder) CreateOrder(ctx, order interface{}) *
 }
 
 // DeleteOrder mocks base method.
-func (m *MockOrderRepository) DeleteOrder(ctx context.Context, orderID int64) error {
+func (m *MockOrderRepository) DeleteOrder(ctx context.Context, orderNumber string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteOrder", ctx, orderID)
+	ret := m.ctrl.Call(m, "DeleteOrder", ctx, orderNumber)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteOrder indicates an expected call of DeleteOrder.
-func (mr *MockOrderRepositoryMockRecorder) DeleteOrder(ctx, orderID interface{}) *gomock.Call {
+func (mr *MockOrderRepositoryMockRecorder) DeleteOrder(ctx, orderNumber interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteOrder", reflect.TypeOf((*MockOrderRepository)(nil).DeleteOrder), ctx, orderID)
-}
-
-// GetOrderByID mocks base method.
-func (m *MockOrderRepository) GetOrderByID(ctx context.Context, orderID int64) (*repository.Order, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOrderByID", ctx, orderID)
-	ret0, _ := ret[0].(*repository.Order)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetOrderByID indicates an expected call of GetOrderByID.
-func (mr *MockOrderRepositoryMockRecorder) GetOrderByID(ctx, orderID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrderByID", reflect.TypeOf((*MockOrderRepository)(nil).GetOrderByID), ctx, orderID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteOrder", reflect.TypeOf((*MockOrderRepository)(nil).DeleteOrder), ctx, orderNumber)
 }
 
 // GetOrderByNumber mocks base method.
