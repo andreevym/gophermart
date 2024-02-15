@@ -77,7 +77,7 @@ func (r *OrderRepository) UpdateOrder(ctx context.Context, order *repository.Ord
 			return nil, fmt.Errorf("failed to update order, sql %s: %v", sql, err)
 		}
 	} else {
-		sql := `UPDATE orders SET user_id = $1, status = $2, accrual = $3, uploaded_at = $4 WHERE id = $5`
+		sql := `UPDATE orders SET user_id = $1, status = $2, accrual = $3, uploaded_at = $4 WHERE number = $5`
 		_, err := r.db.Exec(ctx, sql, order.UserID, order.Status, order.Accrual, order.UploadedAt, order.Number)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update order, sql %s: %v", sql, err)
