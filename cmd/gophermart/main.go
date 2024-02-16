@@ -11,7 +11,9 @@ import (
 	"github.com/andreevym/gofermart/internal/repository/postgres"
 	"github.com/andreevym/gofermart/internal/server"
 	"github.com/andreevym/gofermart/internal/services"
+	"github.com/andreevym/gofermart/pkg/logger"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -65,13 +67,16 @@ func main() {
 	// запуск отдельного процесса для процессинга заявок, только если при запуске сервиса был передан адрес accrualService
 	if accrualService != nil {
 		go func() {
-			for orderNumber := range newOrderNumbersCh {
-				err := orderService.RetryOrderProcessing(orderNumber)
-				if err != nil {
-					return
-				}
+			for {
 				select {
 				case <-doneCh:
+					return
+				case orderNumber := <-newOrderNumbersCh:
+					err := orderService.RetryOrderProcessing(orderNumber)
+					if err != nil {
+						logger.Logger().Error("RetryOrderProcessing", zap.Error(err))
+						panic(err.Error())
+					}
 					return
 				}
 			}
