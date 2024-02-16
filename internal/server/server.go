@@ -27,7 +27,6 @@ func NewServer(handler http.Handler) *Server {
 
 func (s *Server) Run(addr string) {
 	s.Server = &http.Server{Addr: addr, Handler: s.Handler}
-
 	logger.Logger().Info("Server listening", zap.String("addr", addr))
 	if err := s.Server.ListenAndServe(); err != nil {
 		log.Fatalf("failed to start server: %v", err)

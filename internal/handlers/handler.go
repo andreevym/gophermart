@@ -7,6 +7,7 @@ type ServiceHandlers struct {
 	userService        *services.UserService
 	orderService       *services.OrderService
 	transactionService *services.TransactionService
+	newOrderCallback   func(number string)
 }
 
 func NewServiceHandlers(
@@ -14,11 +15,13 @@ func NewServiceHandlers(
 	userService *services.UserService,
 	orderService *services.OrderService,
 	transactionService *services.TransactionService,
+	newOrderCallback func(number string),
 ) *ServiceHandlers {
 	return &ServiceHandlers{
 		authService:        authService,
 		userService:        userService,
 		orderService:       orderService,
 		transactionService: transactionService,
+		newOrderCallback:   newOrderCallback,
 	}
 }

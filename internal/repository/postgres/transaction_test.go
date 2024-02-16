@@ -17,7 +17,7 @@ func TestTransactionRepository(t *testing.T) {
 	repo := postgres.NewTransactionRepository(testDB)
 
 	// Create a test transaction
-	transaction := &repository.Transaction{
+	transaction := repository.Transaction{
 		FromUserID:    1,
 		ToUserID:      1,
 		Amount:        100,
@@ -48,10 +48,17 @@ func TestTransactionRepository(t *testing.T) {
 	retrievedTransactionByUserAndOperation, err := repo.GetTransactionsByUserIDAndOperationType(context.Background(), 1, "Test operation")
 	require.NoError(t, err)
 	require.NotNil(t, retrievedTransactionByUserAndOperation)
-	require.Equal(t, []*repository.Transaction{createdTransaction}, retrievedTransactionByUserAndOperation)
+	require.Len(t, retrievedTransactionByUserAndOperation, 1)
+	//)Equal(t, []repository.Transaction{createdTransaction},
+	require.Len(t, retrievedTransactionByUserAndOperation, 1)
+	require.Equal(t, createdTransaction.TransactionID, retrievedTransactionByUserAndOperation[0].TransactionID)
+	require.Equal(t, createdTransaction.Amount, retrievedTransactionByUserAndOperation[0].Amount)
+	require.Equal(t, createdTransaction.OrderNumber, retrievedTransactionByUserAndOperation[0].OrderNumber)
+	require.Equal(t, createdTransaction.OperationType, retrievedTransactionByUserAndOperation[0].OperationType)
+	require.False(t, retrievedTransactionByUserAndOperation[0].Created.IsZero())
 
 	// Test UpdateTransaction
-	transactionToUpdate := &repository.Transaction{
+	transactionToUpdate := repository.Transaction{
 		TransactionID: createdTransaction.TransactionID,
 		FromUserID:    1,
 		ToUserID:      1,

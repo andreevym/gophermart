@@ -51,7 +51,7 @@ func TestPostOrdersHandler(t *testing.T) {
 			existsOrder: &repository.Order{
 				Number: "12345678903",
 				UserID: testUser,
-				Status: RegisteredOrderStatus,
+				Status: services.RegisteredOrderStatus,
 			},
 		},
 		{
@@ -65,7 +65,7 @@ func TestPostOrdersHandler(t *testing.T) {
 			existsOrder: &repository.Order{
 				Number: "12345678903",
 				UserID: testUser + 1,
-				Status: RegisteredOrderStatus,
+				Status: services.RegisteredOrderStatus,
 			},
 		},
 	}
@@ -85,11 +85,11 @@ func TestPostOrdersHandler(t *testing.T) {
 				mockOrderRepository.EXPECT().GetOrderByNumber(gomock.Any(), test.newOrderNumber).Return(nil, nil).Times(1)
 				mockOrderRepository.EXPECT().CreateOrder(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 			}
-			orderService := services.NewOrderService(mockOrderRepository, nil)
+			orderService := services.NewOrderService(nil, mockOrderRepository, nil)
 
 			jwtConfig := config.JWTConfig{}
 			authService := services.NewAuthService(userService, jwtConfig)
-			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil)
+			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil, nil)
 
 			mw := func(h http.Handler) http.Handler {
 				fn := func(w http.ResponseWriter, r *http.Request) {
@@ -156,13 +156,13 @@ func TestGetOrdersHandler(t *testing.T) {
 				{
 					Number:     "1",
 					UserID:     testUser,
-					Status:     RegisteredOrderStatus,
+					Status:     services.RegisteredOrderStatus,
 					UploadedAt: uploadedAtTime2,
 				},
 				{
 					Number:     "2",
 					UserID:     testUser,
-					Status:     RegisteredOrderStatus,
+					Status:     services.RegisteredOrderStatus,
 					UploadedAt: uploadedAtTime3,
 				},
 			},
@@ -180,7 +180,7 @@ func TestGetOrdersHandler(t *testing.T) {
 				{
 					Number:     "12345678903",
 					UserID:     testUser,
-					Status:     ProcessedOrderStatus,
+					Status:     services.ProcessedOrderStatus,
 					Accrual:    1,
 					UploadedAt: uploadedAtTime,
 				},
@@ -199,7 +199,7 @@ func TestGetOrdersHandler(t *testing.T) {
 				{
 					Number:  "12345678903",
 					UserID:  testUser,
-					Status:  ProcessingOrderStatus,
+					Status:  services.ProcessingOrderStatus,
 					Accrual: 1,
 				},
 			},
@@ -219,11 +219,11 @@ func TestGetOrdersHandler(t *testing.T) {
 			} else {
 				mockOrderRepository.EXPECT().GetOrdersByUserID(gomock.Any(), testUser).Return(nil, nil).Times(1)
 			}
-			orderService := services.NewOrderService(mockOrderRepository, nil)
+			orderService := services.NewOrderService(nil, mockOrderRepository, nil)
 
 			jwtConfig := config.JWTConfig{}
 			authService := services.NewAuthService(userService, jwtConfig)
-			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil)
+			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil, nil)
 
 			mw := func(h http.Handler) http.Handler {
 				fn := func(w http.ResponseWriter, r *http.Request) {

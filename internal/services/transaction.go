@@ -17,7 +17,7 @@ const (
 )
 
 func (s TransactionService) Withdraw(ctx context.Context, fromUserID int64, amount float32, orderNumber string) error {
-	transaction := &repository.Transaction{
+	transaction := repository.Transaction{
 		FromUserID:    fromUserID,
 		ToUserID:      WithdrawUserID,
 		Amount:        amount,
@@ -65,7 +65,7 @@ func (s TransactionService) GetWithdrawBalance(ctx context.Context, userID int64
 	return balance, nil
 }
 
-func (s TransactionService) GetWithdrawTransaction(ctx context.Context, userID int64) ([]*repository.Transaction, error) {
+func (s TransactionService) GetWithdrawTransaction(ctx context.Context, userID int64) ([]repository.Transaction, error) {
 	transactions, err := s.transactionRepository.GetTransactionsByUserIDAndOperationType(ctx, userID, repository.WithdrawOperationType)
 	if err != nil {
 		return nil, fmt.Errorf("get user account by user id '%d': %w", userID, err)

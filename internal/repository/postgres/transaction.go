@@ -26,12 +26,12 @@ func NewTransactionRepository(db *pgxpool.Pool) *TransactionRepository {
 	return &TransactionRepository{db: db}
 }
 
-func (r *TransactionRepository) CreateTransaction(ctx context.Context, transaction *repository.Transaction) (*repository.Transaction, error) {
+func (r *TransactionRepository) CreateTransaction(ctx context.Context, transaction repository.Transaction) (repository.Transaction, error) {
 	var transactionID int64
 	sql := `INSERT INTO transactions (from_user_id, to_user_id, amount, order_number, operation_type) VALUES ($1, $2, $3, $4, $5) RETURNING transaction_id`
 	err := r.db.QueryRow(ctx, sql, transaction.FromUserID, transaction.ToUserID, transaction.Amount, transaction.OrderNumber, transaction.OperationType).Scan(&transactionID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create transaction: %v", err)
+		return repository.Transaction{}, fmt.Errorf("failed to create transaction: %v", err)
 	}
 
 	transaction.TransactionID = transactionID
@@ -63,24 +63,24 @@ func (r TransactionRepository) AccrualAmount(ctx context.Context, userID int64, 
 	return nil
 }
 
-func (r *TransactionRepository) GetTransactionByID(ctx context.Context, transactionID int64) (*repository.Transaction, error) {
+func (r *TransactionRepository) GetTransactionByID(ctx context.Context, transactionID int64) (repository.Transaction, error) {
 	sql := `SELECT from_user_id, to_user_id, amount, order_number, operation_type FROM transactions WHERE transaction_id = $1`
 	var transaction repository.Transaction
 	err := r.db.QueryRow(ctx, sql, transactionID).Scan(&transaction.FromUserID, &transaction.ToUserID, &transaction.Amount, &transaction.OrderNumber,
 		&transaction.OperationType)
 	if err != nil {
 		if err.Error() == pgx.ErrNoRows.Error() {
-			return nil, ErrTransactionNotFound
+			return repository.Transaction{}, ErrTransactionNotFound
 		}
-		return nil, fmt.Errorf("failed to get transaction: %v", err)
+		return repository.Transaction{}, fmt.Errorf("failed to get transaction: %v", err)
 	}
 
 	transaction.TransactionID = transactionID
 
-	return &transaction, nil
+	return transaction, nil
 }
 
-func (r *TransactionRepository) GetTransactionsByUserIDAndOperationType(ctx context.Context, userID int64, operationType string) ([]*repository.Transaction, error) {
+func (r *TransactionRepository) GetTransactionsByUserIDAndOperationType(ctx context.Context, userID int64, operationType string) ([]repository.Transaction, error) {
 	sql := `SELECT transaction_id, from_user_id, to_user_id, amount, order_number, created_at
 		FROM transactions WHERE (from_user_id = $1 OR to_user_id = $1) AND operation_type = $2 ORDER BY created_at DESC`
 	rows, err := r.db.Query(ctx, sql, userID, operationType)
@@ -89,23 +89,23 @@ func (r *TransactionRepository) GetTransactionsByUserIDAndOperationType(ctx cont
 	}
 	defer rows.Close()
 
-	transactions := make([]*repository.Transaction, 0)
+	transactions := make([]repository.Transaction, 0)
 	for rows.Next() {
 		var transaction repository.Transaction
-		err := rows.Scan(&transaction.TransactionID, &transaction.FromUserID, &transaction.ToUserID,
-			&transaction.Amount, &transaction.OrderNumber, &transaction.CreatedAt)
+		err = rows.Scan(&transaction.TransactionID, &transaction.FromUserID, &transaction.ToUserID,
+			&transaction.Amount, &transaction.OrderNumber, &transaction.Created)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan transaction row: %v", err)
 		}
 
 		transaction.OperationType = operationType
-		transactions = append(transactions, &transaction)
+		transactions = append(transactions, transaction)
 	}
 
 	return transactions, nil
 }
 
-func (r *TransactionRepository) GetTransactionsByUserID(ctx context.Context, userID int64) ([]*repository.Transaction, error) {
+func (r *TransactionRepository) GetTransactionsByUserID(ctx context.Context, userID int64) ([]repository.Transaction, error) {
 	sql := `SELECT transaction_id, from_user_id, to_user_id, amount, order_number, operation_type
 		FROM transactions WHERE from_user_id = $1 OR to_user_id = $1`
 	rows, err := r.db.Query(ctx, sql, userID)
@@ -114,7 +114,7 @@ func (r *TransactionRepository) GetTransactionsByUserID(ctx context.Context, use
 	}
 	defer rows.Close()
 
-	transactions := make([]*repository.Transaction, 0)
+	transactions := make([]repository.Transaction, 0)
 	for rows.Next() {
 		var transaction repository.Transaction
 		err := rows.Scan(&transaction.TransactionID, &transaction.FromUserID, &transaction.ToUserID,
@@ -123,17 +123,17 @@ func (r *TransactionRepository) GetTransactionsByUserID(ctx context.Context, use
 			return nil, fmt.Errorf("failed to scan transaction row: %v", err)
 		}
 
-		transactions = append(transactions, &transaction)
+		transactions = append(transactions, transaction)
 	}
 
 	return transactions, nil
 }
 
-func (r *TransactionRepository) UpdateTransaction(ctx context.Context, transaction *repository.Transaction) (*repository.Transaction, error) {
+func (r *TransactionRepository) UpdateTransaction(ctx context.Context, transaction repository.Transaction) (repository.Transaction, error) {
 	sql := `UPDATE transactions SET from_user_id = $1, to_user_id = $2, amount = $3, order_number = $4, operation_type = $5 WHERE transaction_id = $6`
 	_, err := r.db.Exec(ctx, sql, transaction.FromUserID, transaction.ToUserID, transaction.Amount, transaction.OrderNumber, transaction.OperationType, transaction.TransactionID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update transaction: %v", err)
+		return repository.Transaction{}, fmt.Errorf("failed to update transaction: %v", err)
 	}
 
 	return transaction, nil

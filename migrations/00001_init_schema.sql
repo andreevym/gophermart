@@ -5,8 +5,7 @@ CREATE TABLE IF NOT EXISTS users
     id         BIGINT PRIMARY KEY DEFAULT nextval('users_id_seq'),
     username   VARCHAR(255),
     password   VARCHAR(255),
-    created_at TIMESTAMP WITH TIME ZONE          DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(255)       DEFAULT current_user
+    created_at TIMESTAMP WITH TIME ZONE          DEFAULT CURRENT_TIMESTAMP
 );
 
 INSERT INTO users (username, password)
@@ -22,7 +21,6 @@ CREATE TABLE IF NOT EXISTS orders
     accrual     real,
     uploaded_at TIMESTAMP WITH TIME ZONE    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_at  TIMESTAMP WITH TIME ZONE    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by  VARCHAR(255) NOT NULL DEFAULT current_user,
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
 
@@ -36,9 +34,7 @@ CREATE TABLE IF NOT EXISTS transactions
     amount         real        NOT NULL     DEFAULT 0 CHECK (amount >= 0),
     order_number   TEXT,
     created_at     TIMESTAMP WITH TIME ZONE                DEFAULT CURRENT_TIMESTAMP,
-    created_by     VARCHAR(255)             DEFAULT current_user,
     operation_type VARCHAR(50) NOT NULL,
-    date           TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (from_user_id) REFERENCES users (id),
     FOREIGN KEY (to_user_id) REFERENCES users (id)
 );

@@ -80,7 +80,7 @@ func (h *ServiceHandlers) GetWithdrawalsHandler(w http.ResponseWriter, r *http.R
 		userWithdrawals = append(userWithdrawals, &userWithdrawal{
 			OrderWithdrawNumber: transaction.OrderNumber,
 			Sum:                 transaction.Amount,
-			ProcessedAt:         transaction.CreatedAt,
+			ProcessedAt:         transaction.Created,
 		})
 	}
 	bytes, err := json.Marshal(userWithdrawals)

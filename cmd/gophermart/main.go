@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/andreevym/gofermart/internal/accrual"
@@ -21,8 +20,7 @@ func main() {
 
 	// Parse the configuration from flags and environment variables
 	if err := cfg.Parse(); err != nil {
-		fmt.Printf("Error parsing configuration: %s\n", err)
-		return
+		log.Fatalf("Error parsing configuration: %v", err)
 	}
 
 	// Print the configuration
@@ -42,40 +40,69 @@ func main() {
 		log.Fatalf("Failed to apply database migrations: %v", err)
 	}
 
-	accrualService := accrual.NewAccrualService(cfg.AccrualSystemAddress)
-
-	// Create services and repositories
-	userService := services.NewUserService(postgres.NewUserRepository(db))
-	orderService := services.NewOrderService(postgres.NewOrderRepository(db), accrualService)
-
+	// Create repositories
 	transactionRepository := postgres.NewTransactionRepository(db)
+	userRepository := postgres.NewUserRepository(db)
+	orderRepository := postgres.NewOrderRepository(db)
 
+	// Create services
+	accrualService := accrual.NewAccrualService(cfg.AccrualSystemAddress)
+	userService := services.NewUserService(userRepository)
 	transactionService := services.NewTransactionService(transactionRepository)
+	orderService := services.NewOrderService(transactionService, orderRepository, accrualService)
 
 	jwtConfig := config.JWTConfig{}
 	authService := services.NewAuthService(userService, jwtConfig)
 
+	// сигнальный канал для завершения горутин
+	doneCh := make(chan struct{})
+	// закрываем его при завершении программы
+	defer close(doneCh)
+
+	newOrderNumbersCh := make(chan string)
+	defer close(newOrderNumbersCh)
+
+	// запуск отдельного процесса для процессинга заявок, только если при запуске сервиса был передан адрес accrualService
+	if accrualService != nil {
+		go func() {
+			for orderNumber := range newOrderNumbersCh {
+				err := orderService.RetryOrderProcessing(orderNumber)
+				if err != nil {
+					return
+				}
+				select {
+				case <-doneCh:
+					return
+				}
+			}
+		}()
+	}
+
+	// объявляем функцию, которая будет вызвана при создании заявки
+	newOrderCallback := func(number string) {
+		if accrualService != nil {
+			newOrderNumbersCh <- number
+		}
+	}
+	// объявляем все сервисы в одной структуре т.к так удобнее изменять кол-во сервисов
+	// которые мы будем использовать в обработчике
 	serviceHandlers := handlers.NewServiceHandlers(
 		authService,
 		userService,
 		orderService,
 		transactionService,
+		newOrderCallback,
 	)
-
-	// Create router with tracer
 	router := handlers.NewRouter(
 		serviceHandlers,
 		middleware.NewAuthMiddleware(authService).WithAuthentication,
 		middleware.RequestLoggerMiddleware,
 	)
 
-	// Create server
 	server := server.NewServer(router)
 	if server == nil {
-		panic("server can't be nil")
+		log.Fatalf("Server can't be nil: %v", err)
 	}
-
-	// Run server
 	server.Run(cfg.Address)
 	server.Shutdown()
 }

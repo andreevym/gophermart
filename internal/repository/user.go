@@ -7,11 +7,10 @@ import (
 
 // User represents a user entity in the application.
 type User struct {
-	ID        int64     `json:"id"`
-	Username  string    `json:"username"`
-	Password  string    `json:"password"`
-	CreatedAt time.Time `json:"created_at"`
-	CreatedBy string    `json:"created_by"`
+	ID       int64      `json:"id"`
+	Username string     `json:"username"`
+	Password string     `json:"password"`
+	Created  *time.Time `json:"created_at"`
 }
 
 func (u User) IsValidPassword(password string) bool {
