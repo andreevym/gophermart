@@ -43,7 +43,6 @@ func (r TransactionRepository) AccrualAmount(ctx context.Context, userID int64, 
 	if err != nil {
 		return fmt.Errorf("begin: %w", err)
 	}
-	defer tx.Commit(ctx)
 
 	insertTxsql := `INSERT INTO transactions (from_user_id, to_user_id, amount, order_number, operation_type) VALUES ($1, $2, $3, $4, $5)`
 	_, err = tx.Exec(ctx, insertTxsql, AccrualUserID, userID, accrual, orderNumber, repository.WithdrawOperationType)
@@ -57,6 +56,10 @@ func (r TransactionRepository) AccrualAmount(ctx context.Context, userID int64, 
 		return fmt.Errorf("failed to update order, sql %s: %v", sql, err)
 	}
 
+	err = tx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to commit tx, userID: %d, orderNumber: %s, accrual: %f: %w", userID, orderNumber, accrual, err)
+	}
 	return nil
 }
 
