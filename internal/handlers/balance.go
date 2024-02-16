@@ -97,31 +97,6 @@ func (h *ServiceHandlers) GetWithdrawalsHandler(w http.ResponseWriter, r *http.R
 	w.WriteHeader(http.StatusOK)
 }
 
-//
-//type Withdrawal struct {
-//	Order       string    `json:"order"`
-//	Sum         float32  `json:"sum"`
-//	ProcessedAt time.Time `json:"processed_at"`
-//}
-//
-//func (h ServiceHandlers) getWithdrawalsTransaction(userID int64) ([]Withdrawal, error) {
-//	withdrawalTransactions, err := h.transactionService.GetTransactionsByUserAndOperationType(userID, mem.WithdrawOperationType)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	withdrawals := []Withdrawal
-//	for _, transaction := range withdrawalTransactions {
-//		w := Withdrawal{
-//			Order:       transaction.Reason,
-//			Sum:         transaction.Amount,
-//			ProcessedAt: transaction.Date,
-//		}
-//		withdrawals = append(withdrawals, w)
-//	}
-//	return withdrawals, nil
-//}
-
 // PostWithdrawHandler запрос на списание средств
 // #### **Запрос на списание средств**
 //
