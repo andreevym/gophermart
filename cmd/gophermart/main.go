@@ -60,13 +60,13 @@ func main() {
 	doneCh := make(chan struct{})
 	// закрываем его при завершении программы
 	defer close(doneCh)
-
 	newOrderNumbersCh := make(chan string)
-	defer close(newOrderNumbersCh)
 
 	// запуск отдельного процесса для процессинга заявок, только если при запуске сервиса был передан адрес accrualService
 	if accrualService != nil {
 		go func() {
+			defer close(newOrderNumbersCh)
+
 			for {
 				select {
 				case <-doneCh:
@@ -86,7 +86,13 @@ func main() {
 	// объявляем функцию, которая будет вызвана при создании заявки
 	newOrderCallback := func(number string) {
 		if accrualService != nil {
-			newOrderNumbersCh <- number
+			select {
+			case newOrderNumbersCh <- number:
+				return
+			case <-doneCh:
+				return
+			}
+
 		}
 	}
 	// объявляем все сервисы в одной структуре т.к так удобнее изменять кол-во сервисов
@@ -110,4 +116,5 @@ func main() {
 	}
 	server.Run(cfg.Address)
 	server.Shutdown()
+	close(newOrderNumbersCh)
 }
