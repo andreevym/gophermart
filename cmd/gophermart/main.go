@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/andreevym/gofermart/internal/accrual"
 	"github.com/andreevym/gofermart/internal/config"
@@ -56,29 +57,28 @@ func main() {
 	jwtConfig := config.JWTConfig{}
 	authService := services.NewAuthService(userService, jwtConfig)
 
-	newOrderNumbersCh := make(chan string)
-	defer close(newOrderNumbersCh)
-
 	// запуск отдельного процесса для процессинга заявок, только если при запуске сервиса был передан адрес accrualService
 	if accrualService != nil {
 		go func() {
-			for orderNumber := range newOrderNumbersCh {
-				err := orderService.RetryOrderProcessing(orderNumber)
+			ticker := time.NewTicker(cfg.PollOrdersDuration)
+			for t := range ticker.C {
+				logger.Logger().Debug("poll orders", zap.String("ticker", t.String()))
+				orders, err := orderService.GetOrdersByStatus(services.NewOrderStatus)
 				if err != nil {
-					logger.Logger().Error("RetryOrderProcessing", zap.Error(err))
-					panic(err.Error())
+					logger.Logger().Error("get orders by status", zap.Error(err))
+					return
 				}
-				return
+				for _, order := range orders {
+					err := orderService.OrderProcessingWithRetry(order, cfg.MaxOrderAttempts)
+					if err != nil {
+						logger.Logger().Error("RetryOrderProcessing", zap.Error(err))
+						panic(err.Error())
+					}
+				}
 			}
 		}()
 	}
 
-	// объявляем функцию, которая будет вызвана при создании заявки
-	newOrderCallback := func(number string) {
-		if accrualService != nil {
-			newOrderNumbersCh <- number
-		}
-	}
 	// объявляем все сервисы в одной структуре т.к так удобнее изменять кол-во сервисов
 	// которые мы будем использовать в обработчике
 	serviceHandlers := handlers.NewServiceHandlers(
@@ -86,7 +86,6 @@ func main() {
 		userService,
 		orderService,
 		transactionService,
-		newOrderCallback,
 	)
 	router := handlers.NewRouter(
 		serviceHandlers,

@@ -73,10 +73,10 @@ func (s TransactionService) GetWithdrawTransaction(ctx context.Context, userID i
 	return transactions, nil
 }
 
-func (s TransactionService) AccrualAmount(ctx context.Context, userID int64, orderNumber string, accrual float32) error {
-	err := s.transactionRepository.AccrualAmount(ctx, userID, orderNumber, accrual)
+func (s TransactionService) AccrualAmount(ctx context.Context, order repository.Order) error {
+	err := s.transactionRepository.AccrualAmount(ctx, order.UserID, order.Number, order.Accrual)
 	if err != nil {
-		return fmt.Errorf("failed to accrual amount '%d': %w", userID, err)
+		return fmt.Errorf("failed to accrual amount '%d': %w", order.UserID, err)
 	}
 
 	return nil

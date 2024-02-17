@@ -186,7 +186,7 @@ func (h *ServiceHandlers) PostOrdersHandler(w http.ResponseWriter, r *http.Reque
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	if existsOrder != nil {
+	if err == nil {
 		if existsOrder.UserID == userID {
 			w.WriteHeader(http.StatusOK)
 			return
@@ -200,10 +200,6 @@ func (h *ServiceHandlers) PostOrdersHandler(w http.ResponseWriter, r *http.Reque
 		logger.Logger().Warn("PostOrdersHandler: create order", zap.Error(err), zap.String("orderNumber", orderNumber))
 		w.WriteHeader(http.StatusBadRequest)
 		return
-	}
-
-	if h.newOrderCallback != nil {
-		h.newOrderCallback(orderNumber)
 	}
 
 	w.WriteHeader(http.StatusAccepted)
