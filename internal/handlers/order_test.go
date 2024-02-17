@@ -83,13 +83,13 @@ func TestPostOrdersHandler(t *testing.T) {
 				mockOrderRepository.EXPECT().GetOrderByNumber(gomock.Any(), test.newOrderNumber).Return(test.existsOrder, nil).Times(1)
 			} else {
 				mockOrderRepository.EXPECT().GetOrderByNumber(gomock.Any(), test.newOrderNumber).Return(nil, nil).Times(1)
-				mockOrderRepository.EXPECT().CreateOrder(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockOrderRepository.EXPECT().CreateOrder(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			}
 			orderService := services.NewOrderService(nil, mockOrderRepository, nil)
 
 			jwtConfig := config.JWTConfig{}
 			authService := services.NewAuthService(userService, jwtConfig)
-			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil, nil)
+			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil)
 
 			mw := func(h http.Handler) http.Handler {
 				fn := func(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +131,7 @@ func TestGetOrdersHandler(t *testing.T) {
 		requestPath   string
 		searchOrderID string
 		httpMethod    string
-		existsOrders  []*repository.Order
+		existsOrders  []repository.Order
 	}{
 		{
 			name: "order not found and no error",
@@ -152,7 +152,7 @@ func TestGetOrdersHandler(t *testing.T) {
 			requestPath:   "/api/user/orders",
 			searchOrderID: "12345678903",
 			httpMethod:    http.MethodGet,
-			existsOrders: []*repository.Order{
+			existsOrders: []repository.Order{
 				{
 					Number:     "1",
 					UserID:     testUser,
@@ -176,7 +176,7 @@ func TestGetOrdersHandler(t *testing.T) {
 			requestPath:   "/api/user/orders",
 			searchOrderID: "12345678903",
 			httpMethod:    http.MethodGet,
-			existsOrders: []*repository.Order{
+			existsOrders: []repository.Order{
 				{
 					Number:     "12345678903",
 					UserID:     testUser,
@@ -195,7 +195,7 @@ func TestGetOrdersHandler(t *testing.T) {
 			requestPath:   "/api/user/orders",
 			searchOrderID: "12345678903",
 			httpMethod:    http.MethodGet,
-			existsOrders: []*repository.Order{
+			existsOrders: []repository.Order{
 				{
 					Number:  "12345678903",
 					UserID:  testUser,
@@ -223,7 +223,7 @@ func TestGetOrdersHandler(t *testing.T) {
 
 			jwtConfig := config.JWTConfig{}
 			authService := services.NewAuthService(userService, jwtConfig)
-			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil, nil)
+			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil)
 
 			mw := func(h http.Handler) http.Handler {
 				fn := func(w http.ResponseWriter, r *http.Request) {

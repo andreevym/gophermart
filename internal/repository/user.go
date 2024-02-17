@@ -21,9 +21,10 @@ func (u User) IsValidPassword(password string) bool {
 //
 //go:generate mockgen -source=user.go -destination=./mock/user.go -package=mock
 type UserRepository interface {
-	CreateUser(ctx context.Context, user *User) (*User, error)
+	CreateUser(ctx context.Context, user User) error
+	UpdateUser(ctx context.Context, user User) error
+	DeleteUser(ctx context.Context, userID int64) error
+
 	GetUserByID(ctx context.Context, userID int64) (*User, error)
 	GetUserByUsername(ctx context.Context, username string) (*User, error)
-	UpdateUser(ctx context.Context, user *User) (*User, error)
-	DeleteUser(ctx context.Context, userID int64) error
 }

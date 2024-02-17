@@ -17,49 +17,43 @@ func TestUserRepository(t *testing.T) {
 	repo := postgres.NewUserRepository(testDB)
 
 	// Create a test user
-	user := &repository.User{
+	user := repository.User{
 		Username: "testuser",
 		Password: "password",
 	}
 
 	// Test CreateUser
-	createdUser, err := repo.CreateUser(context.Background(), user)
+	err = repo.CreateUser(context.Background(), user)
 	require.NoError(t, err)
-	require.NotNil(t, createdUser)
-	require.NotZero(t, createdUser.ID)
-
-	user.ID = createdUser.ID
-	require.Equal(t, user, createdUser)
-
-	// Test GetUserByID
-	retrievedUserByID, err := repo.GetUserByID(context.Background(), createdUser.ID)
-	require.NoError(t, err)
-	require.NotNil(t, retrievedUserByID)
-	require.Equal(t, createdUser, retrievedUserByID)
 
 	// Test GetUserByUsername
 	retrievedUserByUsername, err := repo.GetUserByUsername(context.Background(), user.Username)
 	require.NoError(t, err)
 	require.NotNil(t, retrievedUserByUsername)
-	require.Equal(t, createdUser, retrievedUserByUsername)
+	require.Equal(t, user.Username, retrievedUserByUsername.Username)
+	require.Equal(t, user.Password, retrievedUserByUsername.Password)
+
+	// Test GetUserByID
+	retrievedUserByID, err := repo.GetUserByID(context.Background(), retrievedUserByUsername.ID)
+	require.NoError(t, err)
+	require.NotNil(t, retrievedUserByID)
+	require.Equal(t, retrievedUserByUsername, retrievedUserByID)
 
 	// Test UpdateUser
-	userToUpdate := &repository.User{
-		ID:       createdUser.ID,
+	userToUpdate := repository.User{
+		ID:       retrievedUserByUsername.ID,
 		Username: "updateduser",
 		Password: "newpassword",
 	}
-	updatedUser, err := repo.UpdateUser(context.Background(), userToUpdate)
+	err = repo.UpdateUser(context.Background(), userToUpdate)
 	require.NoError(t, err)
-	require.NotNil(t, updatedUser)
-	require.Equal(t, userToUpdate, updatedUser)
 
 	// Test DeleteUser
-	err = repo.DeleteUser(context.Background(), createdUser.ID)
+	err = repo.DeleteUser(context.Background(), retrievedUserByUsername.ID)
 	require.NoError(t, err)
 
 	// Verify user is deleted
-	_, err = repo.GetUserByID(context.Background(), createdUser.ID)
+	_, err = repo.GetUserByID(context.Background(), retrievedUserByUsername.ID)
 	require.Error(t, err)
 	require.EqualError(t, err, postgres.ErrUserNotFound.Error())
 }

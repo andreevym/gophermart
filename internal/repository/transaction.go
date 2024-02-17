@@ -7,7 +7,7 @@ import (
 
 const (
 	WithdrawOperationType = "withdraw"
-	AccrualOperationType  = "withdraw"
+	AccrualOperationType  = "accrual"
 )
 
 type Transaction struct {
@@ -25,11 +25,13 @@ type Transaction struct {
 //
 //go:generate mockgen -source=transaction.go -destination=./mock/transaction.go -package=mock
 type TransactionRepository interface {
-	CreateTransaction(ctx context.Context, transaction Transaction) (Transaction, error)
-	GetTransactionByID(ctx context.Context, transactionID int64) (Transaction, error)
-	GetTransactionsByUserIDAndOperationType(ctx context.Context, userID int64, operationType string) ([]Transaction, error)
-	UpdateTransaction(ctx context.Context, transaction Transaction) (Transaction, error)
+	CreateTransaction(ctx context.Context, transaction Transaction) (*Transaction, error)
+	UpdateTransaction(ctx context.Context, transaction Transaction) error
 	DeleteTransaction(ctx context.Context, transactionID int64) error
-	AccrualAmount(ctx context.Context, userID int64, orderNumber string, accrual float32) error
+
+	GetTransactionByID(ctx context.Context, transactionID int64) (*Transaction, error)
+	GetTransactionsByUserIDAndOperationType(ctx context.Context, userID int64, operationType string) ([]Transaction, error)
 	GetTransactionsByUserID(ctx context.Context, userID int64) ([]Transaction, error)
+
+	AccrualAmount(ctx context.Context, userID int64, orderNumber string, accrual float32, orderStatus string) error
 }

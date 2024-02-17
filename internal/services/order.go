@@ -61,7 +61,7 @@ func (s *OrderService) OrderProcessingWithRetry(order repository.Order, maxOrder
 		time.Sleep(time.Millisecond * 100)
 	}
 	if err != nil {
-		_, err = s.CancelOrder(order)
+		err = s.CancelOrder(order)
 		if err != nil {
 			return fmt.Errorf("failed to process, order was canceled: %w", err)
 		}
@@ -81,12 +81,21 @@ func (s *OrderService) OrderProcessing(
 		order.Status == InvalidOrderStatus {
 		return nil
 	}
-	updatedOrder, err := s.SyncOrderWithAccrual(order)
+
+	orderAccrual, err := s.AccrualService.RequestAccrualByOrderNumber(order.Number)
 	if err != nil {
-		logger.Logger().Error("order service: wait accrual", zap.Error(err))
-		return fmt.Errorf("failed to sync order with accrual: %w", err)
+		logger.Logger().Error("AccrualService.RequestAccrualByOrderNumber", zap.Error(err))
+		return fmt.Errorf("failed to get order from AccrualService: %w", err)
 	}
-	err = s.TransactionService.AccrualAmount(child, updatedOrder)
+
+	// update order and insert transaction
+	err = s.TransactionService.AccrualAmount(
+		child,
+		order.UserID,
+		orderAccrual.Order,
+		orderAccrual.Accrual,
+		orderAccrual.Status,
+	)
 	if err != nil {
 		logger.Logger().Error("transfer service: accrual amount", zap.Error(err))
 		return fmt.Errorf("failed to make changes in accrual %w", err)
@@ -95,45 +104,22 @@ func (s *OrderService) OrderProcessing(
 	return nil
 }
 
-func (s OrderService) GetOrderByNumber(context context.Context, number string) (repository.Order, error) {
+func (s OrderService) GetOrderByNumber(context context.Context, number string) (*repository.Order, error) {
 	return s.OrderRepository.GetOrderByNumber(context, number)
 }
 
-// SyncOrderWithAccrual обновляем статус заказа и начислния исходя после запроса в сервис
-// возвращает заказ с обновленными данными
-func (s OrderService) SyncOrderWithAccrual(order repository.Order) (repository.Order, error) {
-	ctx := context.Background()
-
-	orderAccrual, err := s.AccrualService.GetOrderByNumber(order.Number)
-	if err != nil {
-		logger.Logger().Error("AccrualService.GetOrderByNumber", zap.Error(err))
-		return repository.Order{}, err
-	}
-
-	order.Status = orderAccrual.Status
-	order.Accrual = orderAccrual.Accrual
-
-	_, err = s.OrderRepository.UpdateOrder(ctx, order)
-	if err != nil {
-		logger.Logger().Error("orderService.OrderRepository.GetOrderByID", zap.Error(err))
-		return repository.Order{}, err
-	}
-
-	return order, nil
-}
-
 // CancelOrder отмена заказа
-func (s OrderService) CancelOrder(order repository.Order) (repository.Order, error) {
+func (s OrderService) CancelOrder(order repository.Order) error {
 	ctx := context.Background()
 	order.Status = InvalidOrderStatus
 
-	_, err := s.OrderRepository.UpdateOrder(ctx, order)
+	err := s.OrderRepository.UpdateOrder(ctx, order)
 	if err != nil {
 		logger.Logger().Error("orderService.OrderRepository.GetOrderByID", zap.Error(err))
-		return repository.Order{}, err
+		return err
 	}
 
-	return order, nil
+	return nil
 }
 
 func (s OrderService) NewOrder(ctx context.Context, orderNumber string, userID int64) error {
@@ -143,7 +129,7 @@ func (s OrderService) NewOrder(ctx context.Context, orderNumber string, userID i
 		Status:     NewOrderStatus,
 		UploadedAt: time.Now(),
 	}
-	_, err := s.OrderRepository.CreateOrder(ctx, newOrder)
+	err := s.OrderRepository.CreateOrder(ctx, newOrder)
 	if err != nil {
 		return fmt.Errorf("creating order: %w", err)
 	}

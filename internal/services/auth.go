@@ -23,7 +23,6 @@ type AuthService struct {
 }
 
 var (
-	ErrAuthAlreadyExists  = errors.New("user already exists")
 	ErrAuthBadCredentials = errors.New("username or password is incorrect")
 )
 
@@ -54,21 +53,12 @@ func (a *AuthService) Login(ctx context.Context, username string, password strin
 
 // Register registers a new user.
 func (a *AuthService) Register(ctx context.Context, username string, password string) (string, error) {
-	_, err := a.userService.UserRepository.GetUserByUsername(ctx, username)
-	if err == nil {
-		return "", ErrAuthAlreadyExists
-	}
-
-	user, err := a.userService.CreateUser(ctx, username, password)
+	err := a.userService.CreateUser(ctx, username, password)
 	if err != nil {
 		return "", fmt.Errorf("create user: %w", err)
 	}
 
-	t, err := a.GenerateToken(user.ID)
-	if err != nil {
-		return "", fmt.Errorf("GenerateToken: %w", err)
-	}
-	return t, nil
+	return a.Login(ctx, username, password)
 }
 
 // Logout invalidates a JWT token.
