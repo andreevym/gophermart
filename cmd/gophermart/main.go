@@ -3,18 +3,16 @@ package main
 import (
 	"context"
 	"log"
-	"time"
 
 	"github.com/andreevym/gofermart/internal/accrual"
 	"github.com/andreevym/gofermart/internal/config"
 	"github.com/andreevym/gofermart/internal/handlers"
 	"github.com/andreevym/gofermart/internal/middleware"
 	"github.com/andreevym/gofermart/internal/repository/postgres"
+	"github.com/andreevym/gofermart/internal/scheduler"
 	"github.com/andreevym/gofermart/internal/server"
 	"github.com/andreevym/gofermart/internal/services"
-	"github.com/andreevym/gofermart/pkg/logger"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"go.uber.org/zap"
 )
 
 func main() {
@@ -61,35 +59,10 @@ func main() {
 		stop = make(chan struct{}) // tells the goroutine to stop
 		done = make(chan struct{}) // tells us that the goroutine exited
 	)
-
 	// запуск отдельного процесса для процессинга заявок, только если при запуске сервиса был передан адрес accrualService
 	if accrualService != nil {
-		defer close(done)
-
-		go func() {
-			ticker := time.NewTicker(cfg.PollOrdersDelay)
-			defer ticker.Stop()
-			for {
-				select {
-				case <-stop:
-					return
-				case t := <-ticker.C:
-					logger.Logger().Debug("poll orders", zap.String("ticker", t.String()))
-					orders, err := orderService.GetOrdersByStatus(services.NewOrderStatus)
-					if err != nil {
-						logger.Logger().Error("get orders by status", zap.Error(err))
-						return
-					}
-					for _, order := range orders {
-						err := orderService.OrderProcessingWithRetry(order, cfg.MaxOrderAttempts)
-						if err != nil {
-							logger.Logger().Error("RetryOrderProcessing", zap.Error(err))
-							panic(err.Error())
-						}
-					}
-				}
-			}
-		}()
+		scheduler := scheduler.NewScheduler(accrualService, orderService)
+		scheduler.ProcessingByDelay(done, stop, cfg.PollOrdersDelay, cfg.MaxOrderAttempts)
 	}
 
 	// объявляем все сервисы в одной структуре т.к так удобнее изменять кол-во сервисов
