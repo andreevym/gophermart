@@ -57,22 +57,35 @@ func main() {
 	jwtConfig := config.JWTConfig{}
 	authService := services.NewAuthService(userService, jwtConfig)
 
+	var (
+		stop = make(chan struct{}) // tells the goroutine to stop
+		done = make(chan struct{}) // tells us that the goroutine exited
+	)
+
 	// запуск отдельного процесса для процессинга заявок, только если при запуске сервиса был передан адрес accrualService
 	if accrualService != nil {
+		defer close(done)
+
 		go func() {
-			ticker := time.NewTicker(cfg.PollOrdersDuration)
-			for t := range ticker.C {
-				logger.Logger().Debug("poll orders", zap.String("ticker", t.String()))
-				orders, err := orderService.GetOrdersByStatus(services.NewOrderStatus)
-				if err != nil {
-					logger.Logger().Error("get orders by status", zap.Error(err))
+			ticker := time.NewTicker(cfg.PollOrdersDelay)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-stop:
 					return
-				}
-				for _, order := range orders {
-					err := orderService.OrderProcessingWithRetry(order, cfg.MaxOrderAttempts)
+				case t := <-ticker.C:
+					logger.Logger().Debug("poll orders", zap.String("ticker", t.String()))
+					orders, err := orderService.GetOrdersByStatus(services.NewOrderStatus)
 					if err != nil {
-						logger.Logger().Error("RetryOrderProcessing", zap.Error(err))
-						panic(err.Error())
+						logger.Logger().Error("get orders by status", zap.Error(err))
+						return
+					}
+					for _, order := range orders {
+						err := orderService.OrderProcessingWithRetry(order, cfg.MaxOrderAttempts)
+						if err != nil {
+							logger.Logger().Error("RetryOrderProcessing", zap.Error(err))
+							panic(err.Error())
+						}
 					}
 				}
 			}
@@ -99,4 +112,6 @@ func main() {
 	}
 	server.Run(cfg.Address)
 	server.Shutdown()
+	close(stop) // signal the goroutine to stop
+	<-done      // and wait for it to exit
 }

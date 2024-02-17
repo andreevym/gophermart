@@ -25,7 +25,7 @@ type Config struct {
 	AccrualSystemAddress string        `json:"accrualSystemAddress" env:"ACCRUAL_SYSTEM_ADDRESS"`
 	JWTConfig            JWTConfig     `json:"jwt"`
 	LogLevel             string        `json:"logLevel" env:"LOG_LEVEL"`
-	PollOrdersDuration   time.Duration `json:"pollDuration" env:"POLL_ORDERS_DURATION"`
+	PollOrdersDelay      time.Duration `json:"pollDuration" env:"POLL_ORDERS_DURATION"`
 	MaxOrderAttempts     int           `json:"maxOrderAttempts" env:"MAX_ORDER_ATTEMPTS"`
 }
 
@@ -49,7 +49,7 @@ func (c *Config) Parse() error {
 	flag.StringVar(&c.AccrualSystemAddress, "r", "", "Accrual System Address (overrides environment variable)")
 	flag.StringVar(&c.LogLevel, "l", "info", "Logging level [INFO, DEBUG, ERROR]")
 	flag.IntVar(&c.MaxOrderAttempts, "maxOrderAttempts", 3, "Logging level [INFO, DEBUG, ERROR]")
-	flag.DurationVar(&c.PollOrdersDuration, "pollOrdersDuration", 10*time.Millisecond, "duration for handle orders")
+	flag.DurationVar(&c.PollOrdersDelay, "pollOrdersDuration", 10*time.Millisecond, "duration for handle orders")
 	flag.StringVar(&c.JWTConfig.SecretKey, "j", "", "JWTConfig SecretKey")
 
 	// Parse flags
@@ -71,7 +71,7 @@ func (c *Config) Print() {
 		zap.String("Database URI", c.DatabaseURI),
 		zap.String("Accrual System Address", c.AccrualSystemAddress),
 		zap.String("JWT Secret Key", c.JWTConfig.SecretKey),
-		zap.String("PollOrdersDuration", c.PollOrdersDuration.String()),
+		zap.String("PollOrdersDelay", c.PollOrdersDelay.String()),
 		zap.Int("MaxOrderAttempts", c.MaxOrderAttempts),
 		zap.String("LogLevel", c.LogLevel),
 	)
