@@ -11,10 +11,12 @@ import (
 )
 
 type AccrualScheduler struct {
-	orderService   *services.OrderService
-	accrualService *accrual.AccrualService
-	stop           chan struct{}
-	done           chan struct{}
+	orderService     *services.OrderService
+	accrualService   *accrual.AccrualService
+	stop             chan struct{}
+	done             chan struct{}
+	pollOrdersDelay  time.Duration
+	maxOrderAttempts int
 }
 
 func NewAccrualScheduler(
@@ -28,13 +30,19 @@ func NewAccrualScheduler(
 		done = make(chan struct{}) // tells us that the goroutine exited
 	)
 	s := &AccrualScheduler{
-		accrualService: accrualService,
-		orderService:   orderService,
-		stop:           stop,
-		done:           done,
+		accrualService:   accrualService,
+		orderService:     orderService,
+		stop:             stop,
+		done:             done,
+		pollOrdersDelay:  pollOrdersDelay,
+		maxOrderAttempts: maxOrderAttempts,
 	}
-	go s.processingByDelay(done, stop, pollOrdersDelay, maxOrderAttempts)
+
 	return s
+}
+
+func (s *AccrualScheduler) Run() {
+	go s.processingByDelay(s.done, s.stop, s.pollOrdersDelay, s.maxOrderAttempts)
 }
 
 func (s *AccrualScheduler) processingByDelay(done chan struct{}, stop chan struct{}, pollOrdersDelay time.Duration, maxOrderAttempts int) {
@@ -47,7 +55,7 @@ func (s *AccrualScheduler) processingByDelay(done chan struct{}, stop chan struc
 			case <-stop:
 				return
 			case t := <-ticker.C:
-				if err := syncOrders(t, s, maxOrderAttempts); err != nil {
+				if err := s.syncOrders(t, maxOrderAttempts); err != nil {
 					logger.Logger().Error("sync orders", zap.Error(err))
 				}
 			}
@@ -56,7 +64,7 @@ func (s *AccrualScheduler) processingByDelay(done chan struct{}, stop chan struc
 }
 
 // syncOrders sync new orders statuses and accrual with accrual service
-func syncOrders(t time.Time, s *AccrualScheduler, maxOrderAttempts int) error {
+func (s *AccrualScheduler) syncOrders(t time.Time, maxOrderAttempts int) error {
 	logger.Logger().Debug("poll orders", zap.String("ticker", t.String()))
 	orders, err := s.orderService.GetOrdersByStatus(services.NewOrderStatus)
 	if err != nil {

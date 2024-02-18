@@ -59,6 +59,7 @@ func main() {
 	if accrualService != nil {
 		accrualScheduler := scheduler.NewAccrualScheduler(accrualService, orderService, cfg.PollOrdersDelay, cfg.MaxOrderAttempts)
 		defer accrualScheduler.Shutdown()
+		accrualScheduler.Run()
 	}
 
 	// объявляем все сервисы в одной структуре т.к так удобнее изменять кол-во сервисов
