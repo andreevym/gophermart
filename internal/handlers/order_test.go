@@ -8,11 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/andreevym/gofermart/internal/config"
-	"github.com/andreevym/gofermart/internal/middleware"
-	"github.com/andreevym/gofermart/internal/repository"
-	"github.com/andreevym/gofermart/internal/repository/mock"
-	"github.com/andreevym/gofermart/internal/services"
+	"github.com/andreevym/gophermart/internal/middleware"
+	"github.com/andreevym/gophermart/internal/repository"
+	"github.com/andreevym/gophermart/internal/repository/mock"
+	"github.com/andreevym/gophermart/internal/services"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -86,9 +85,7 @@ func TestPostOrdersHandler(t *testing.T) {
 				mockOrderRepository.EXPECT().CreateOrder(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			}
 			orderService := services.NewOrderService(nil, mockOrderRepository, nil)
-
-			jwtConfig := config.JWTConfig{}
-			authService := services.NewAuthService(userService, jwtConfig)
+			authService := services.NewAuthService(userService, "")
 			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil)
 
 			mw := func(h http.Handler) http.Handler {
@@ -220,9 +217,7 @@ func TestGetOrdersHandler(t *testing.T) {
 				mockOrderRepository.EXPECT().GetOrdersByUserID(gomock.Any(), testUser).Return(nil, nil).Times(1)
 			}
 			orderService := services.NewOrderService(nil, mockOrderRepository, nil)
-
-			jwtConfig := config.JWTConfig{}
-			authService := services.NewAuthService(userService, jwtConfig)
+			authService := services.NewAuthService(userService, "")
 			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil)
 
 			mw := func(h http.Handler) http.Handler {

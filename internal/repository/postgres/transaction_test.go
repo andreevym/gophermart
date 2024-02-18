@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/andreevym/gofermart/internal/repository"
-	"github.com/andreevym/gofermart/internal/repository/postgres"
+	"github.com/andreevym/gophermart/internal/repository"
+	"github.com/andreevym/gophermart/internal/repository/postgres"
 	"github.com/stretchr/testify/require"
 )
 

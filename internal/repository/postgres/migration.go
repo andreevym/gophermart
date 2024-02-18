@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/andreevym/gofermart/pkg/logger"
+	"github.com/andreevym/gophermart/pkg/logger"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"go.uber.org/zap"
 )
@@ -27,7 +27,7 @@ func ApplyMigration(ctx context.Context, db *pgxpool.Pool, sql string) error {
 
 func Migration(ctx context.Context, db *pgxpool.Pool) error {
 	err := filepath.Walk("migrations", func(path string, info fs.FileInfo, err error) error {
-		if !info.IsDir() {
+		if info != nil && !info.IsDir() {
 			logger.Logger().Info("apply migration", zap.String("path", path))
 			bytes, err := os.ReadFile(path)
 			if err != nil {

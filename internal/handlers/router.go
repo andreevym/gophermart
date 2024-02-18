@@ -15,9 +15,9 @@ func NewRouter(s *ServiceHandlers, middlewares ...func(http.Handler) http.Handle
 	r := chi.NewRouter()
 
 	// Attach other middlewares
-	r.Use(middleware.RequestID)
+	//r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
+	//r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
 	r.Use(middlewares...)
@@ -36,7 +36,7 @@ func NewRouter(s *ServiceHandlers, middlewares ...func(http.Handler) http.Handle
 	r.Post("/api/user/balance/withdraw", s.PostWithdrawHandler)
 	//GET /api/user/withdrawals — получение информации о выводе средств с накопительного счёта пользователем.
 	r.Get("/api/user/withdrawals", s.GetWithdrawalsHandler)
-	r.Get("/ping", s.GetPingHandler)
+	r.Get("/api/ping", s.GetPingHandler)
 	r.Get("/", func(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set("Content-Type", "text/html")
 	})

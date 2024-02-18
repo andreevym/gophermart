@@ -8,4 +8,5 @@ func (h ServiceHandlers) GetPingHandler(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+	w.WriteHeader(http.StatusOK)
 }

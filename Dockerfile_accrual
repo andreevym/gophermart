@@ -1,0 +1,4 @@
+FROM ubuntu:16.04
+COPY ./cmd/accrual/accrual_linux_amd64 /app/accrual_linux_amd64
+WORKDIR /app/
+CMD ["/app/accrual_linux_amd64"]

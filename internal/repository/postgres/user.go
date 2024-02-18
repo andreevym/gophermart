@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/andreevym/gofermart/internal/repository"
+	"github.com/andreevym/gophermart/internal/repository"
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/v4/pgxpool"
 )

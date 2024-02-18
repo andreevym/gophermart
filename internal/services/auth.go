@@ -12,14 +12,13 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/andreevym/gofermart/internal/config"
 	"github.com/golang-jwt/jwt"
 )
 
 // AuthService represents a concrete implementation of the AuthService interface.
 type AuthService struct {
-	userService *UserService
-	jwtConfig   config.JWTConfig
+	userService  *UserService
+	jwtSecretKey string
 }
 
 var (
@@ -27,10 +26,10 @@ var (
 )
 
 // NewAuthService creates a new instance of AuthService.
-func NewAuthService(userService *UserService, jwtConfig config.JWTConfig) *AuthService {
+func NewAuthService(userService *UserService, jwtSecretKey string) *AuthService {
 	return &AuthService{
-		userService: userService,
-		jwtConfig:   jwtConfig,
+		userService:  userService,
+		jwtSecretKey: jwtSecretKey,
 	}
 }
 
@@ -76,16 +75,16 @@ func (a *AuthService) GenerateToken(userID int64) (string, error) {
 	})
 
 	var jwtSecretKey *ecdsa.PrivateKey
-	if a.jwtConfig.SecretKey == "" {
+	if a.jwtSecretKey == "" {
 		jwtSecretKey = GenPrivateKeyMust()
 		privateKey, err := x509.MarshalECPrivateKey(jwtSecretKey)
 		if err != nil {
 			return "", fmt.Errorf("x509.MarshalECPrivateKey: %w", err)
 		}
-		a.jwtConfig.SecretKey = string(privateKey)
+		a.jwtSecretKey = string(privateKey)
 	} else {
 		var err error
-		jwtSecretKey, err = x509.ParseECPrivateKey([]byte(a.jwtConfig.SecretKey))
+		jwtSecretKey, err = x509.ParseECPrivateKey([]byte(a.jwtSecretKey))
 		if err != nil {
 			return "", fmt.Errorf("x509.MarshalECPrivateKey: %w", err)
 		}
@@ -99,7 +98,7 @@ func (a *AuthService) GenerateToken(userID int64) (string, error) {
 
 // ValidateToken validates a JWT token and extracts the user ID.
 func (a *AuthService) ValidateToken(tokenString string) (int64, error) {
-	privateKey, err := x509.ParseECPrivateKey([]byte(a.jwtConfig.SecretKey))
+	privateKey, err := x509.ParseECPrivateKey([]byte(a.jwtSecretKey))
 	if err != nil {
 		return -1, fmt.Errorf("x509.ParseECPrivateKey: %w", err)
 	}

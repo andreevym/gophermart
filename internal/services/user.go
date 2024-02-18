@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/andreevym/gofermart/internal/repository"
+	"github.com/andreevym/gophermart/internal/repository"
 )
 
 var (

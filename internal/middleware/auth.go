@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/andreevym/gofermart/internal/services"
-	"github.com/andreevym/gofermart/pkg/logger"
+	"github.com/andreevym/gophermart/internal/services"
+	"github.com/andreevym/gophermart/pkg/logger"
 	"go.uber.org/zap"
 )
 
@@ -34,7 +34,9 @@ func NewAuthMiddleware(authService *services.AuthService) *AuthMiddleware {
 // WithAuthentication implements the http.HandlerFunc interface for the AuthMiddleware.
 func (am *AuthMiddleware) WithAuthentication(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.RequestURI, "/api/user/register") ||
+		if strings.Contains(r.RequestURI, "/") ||
+			strings.Contains(r.RequestURI, "/api/ping") ||
+			strings.Contains(r.RequestURI, "/api/user/register") ||
 			strings.Contains(r.RequestURI, "/api/user/login") {
 			next.ServeHTTP(w, r)
 			return
