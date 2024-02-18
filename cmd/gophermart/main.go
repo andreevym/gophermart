@@ -71,10 +71,12 @@ func main() {
 		transactionService,
 		db,
 	)
+
+	authMiddleware := middleware.NewAuthMiddleware(authService)
 	router := handlers.NewRouter(
 		serviceHandlers,
-		middleware.NewAuthMiddleware(authService).WithAuthentication,
-		middleware.RequestLoggerMiddleware,
+		authMiddleware.WithAuthentication,
+		middleware.WithRequestLoggerMiddleware,
 	)
 
 	server := server.NewServer(router)
