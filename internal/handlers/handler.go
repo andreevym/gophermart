@@ -18,11 +18,13 @@ func NewServiceHandlers(
 	userService *services.UserService,
 	orderService *services.OrderService,
 	transactionService *services.TransactionService,
+	dbClient *pgxpool.Pool,
 ) *ServiceHandlers {
 	return &ServiceHandlers{
 		authService:        authService,
 		userService:        userService,
 		orderService:       orderService,
 		transactionService: transactionService,
+		dbClient:           dbClient,
 	}
 }

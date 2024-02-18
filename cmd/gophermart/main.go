@@ -69,6 +69,7 @@ func main() {
 		userService,
 		orderService,
 		transactionService,
+		db,
 	)
 	router := handlers.NewRouter(
 		serviceHandlers,

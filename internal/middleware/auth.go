@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/andreevym/gophermart/internal/services"
 	"github.com/andreevym/gophermart/pkg/logger"
@@ -23,19 +22,24 @@ var ErrAuthUnauthorized = errors.New("unauthorized")
 
 // AuthMiddleware is a middleware for authentication using JWT tokens.
 type AuthMiddleware struct {
-	authService *services.AuthService
+	authService          *services.AuthService
+	allowUnauthorizedURI map[string]struct{}
 }
 
 // NewAuthMiddleware creates a new instance of AuthMiddleware with the given AuthService.
 func NewAuthMiddleware(authService *services.AuthService) *AuthMiddleware {
-	return &AuthMiddleware{authService}
+	allowUnauthorizedURI := make(map[string]struct{})
+	allowUnauthorizedURI["/"] = struct{}{}
+	allowUnauthorizedURI["/api/ping"] = struct{}{}
+	allowUnauthorizedURI["/api/user/register"] = struct{}{}
+	allowUnauthorizedURI["/api/user/login"] = struct{}{}
+	return &AuthMiddleware{authService, allowUnauthorizedURI}
 }
 
 // WithAuthentication implements the http.HandlerFunc interface for the AuthMiddleware.
 func (am *AuthMiddleware) WithAuthentication(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.RequestURI, "/api/user/register") ||
-			strings.Contains(r.RequestURI, "/api/user/login") {
+		if _, ok := am.allowUnauthorizedURI[r.RequestURI]; ok {
 			next.ServeHTTP(w, r)
 			return
 		}
