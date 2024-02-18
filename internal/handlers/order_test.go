@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/andreevym/gophermart/internal/config"
 	"github.com/andreevym/gophermart/internal/middleware"
 	"github.com/andreevym/gophermart/internal/repository"
 	"github.com/andreevym/gophermart/internal/repository/mock"
@@ -87,8 +86,8 @@ func TestPostOrdersHandler(t *testing.T) {
 			}
 			orderService := services.NewOrderService(nil, mockOrderRepository, nil)
 
-			jwtConfig := config.JWTConfig{}
-			authService := services.NewAuthService(userService, jwtConfig)
+			jwtSecretKey := ""
+			authService := services.NewAuthService(userService, jwtSecretKey)
 			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil)
 
 			mw := func(h http.Handler) http.Handler {
@@ -221,8 +220,8 @@ func TestGetOrdersHandler(t *testing.T) {
 			}
 			orderService := services.NewOrderService(nil, mockOrderRepository, nil)
 
-			jwtConfig := config.JWTConfig{}
-			authService := services.NewAuthService(userService, jwtConfig)
+			jwtSecretKey := ""
+			authService := services.NewAuthService(userService, jwtSecretKey)
 			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil)
 
 			mw := func(h http.Handler) http.Handler {

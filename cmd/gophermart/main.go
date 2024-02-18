@@ -52,8 +52,8 @@ func main() {
 	transactionService := services.NewTransactionService(transactionRepository)
 	orderService := services.NewOrderService(transactionService, orderRepository, accrualService)
 
-	jwtConfig := config.JWTConfig{}
-	authService := services.NewAuthService(userService, jwtConfig)
+	jwtSecretKey := ""
+	authService := services.NewAuthService(userService, jwtSecretKey)
 
 	// запуск отдельного процесса для процессинга заявок, только если при запуске сервиса был передан адрес accrualService
 	if accrualService != nil {
