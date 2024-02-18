@@ -13,20 +13,15 @@ import (
 	"go.uber.org/zap"
 )
 
-// JWTConfig represents JWT configuration.
-type JWTConfig struct {
-	SecretKey string `json:"secretKey" env:"JWT_SECRET_KEY"`
-}
-
 // Config represents the application configuration.
 type Config struct {
 	Address              string        `json:"address" env:"RUN_ADDRESS"`
 	DatabaseURI          string        `json:"databaseURI" env:"DATABASE_URI"`
 	AccrualSystemAddress string        `json:"accrualSystemAddress" env:"ACCRUAL_SYSTEM_ADDRESS"`
-	JWTConfig            JWTConfig     `json:"jwt"`
 	LogLevel             string        `json:"logLevel" env:"LOG_LEVEL"`
 	PollOrdersDelay      time.Duration `json:"pollDuration" env:"POLL_ORDERS_DURATION"`
 	MaxOrderAttempts     int           `json:"maxOrderAttempts" env:"MAX_ORDER_ATTEMPTS"`
+	JWTSecretKey         string        `json:"secretKey" env:"JWT_SECRET_KEY"`
 }
 
 // NewConfig creates a new Config instance with default values.
@@ -50,7 +45,7 @@ func (c *Config) Parse() error {
 	flag.StringVar(&c.LogLevel, "l", "info", "Logging level [INFO, DEBUG, ERROR]")
 	flag.IntVar(&c.MaxOrderAttempts, "maxOrderAttempts", 3, "Logging level [INFO, DEBUG, ERROR]")
 	flag.DurationVar(&c.PollOrdersDelay, "pollOrdersDuration", 10*time.Millisecond, "duration for handle orders")
-	flag.StringVar(&c.JWTConfig.SecretKey, "j", "", "JWTConfig SecretKey")
+	flag.StringVar(&c.JWTSecretKey, "j", "", "JWTConfig SecretKey")
 
 	// Parse flags
 	flag.Parse()
@@ -70,9 +65,9 @@ func (c *Config) Print() {
 		zap.String("Run Address", c.Address),
 		zap.String("Database URI", c.DatabaseURI),
 		zap.String("Accrual System Address", c.AccrualSystemAddress),
-		zap.String("JWT Secret Key", c.JWTConfig.SecretKey),
 		zap.String("PollOrdersDelay", c.PollOrdersDelay.String()),
 		zap.Int("MaxOrderAttempts", c.MaxOrderAttempts),
 		zap.String("LogLevel", c.LogLevel),
+		zap.String("JWT Secret Key", c.JWTSecretKey),
 	)
 }
