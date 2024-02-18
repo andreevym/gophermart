@@ -88,7 +88,7 @@ func TestPostOrdersHandler(t *testing.T) {
 
 			jwtSecretKey := ""
 			authService := services.NewAuthService(userService, jwtSecretKey)
-			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil)
+			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil, nil)
 
 			mw := func(h http.Handler) http.Handler {
 				fn := func(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +222,7 @@ func TestGetOrdersHandler(t *testing.T) {
 
 			jwtSecretKey := ""
 			authService := services.NewAuthService(userService, jwtSecretKey)
-			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil)
+			serviceHandlers := NewServiceHandlers(authService, userService, orderService, nil, nil)
 
 			mw := func(h http.Handler) http.Handler {
 				fn := func(w http.ResponseWriter, r *http.Request) {
