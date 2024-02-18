@@ -1,0 +1,42 @@
+version: '3'
+
+services:
+  gophermart:
+    container_name: "gophermart"
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile_gophermart
+    ports:
+      - "8081:8081"
+    environment:
+      RUN_ADDRESS: ":8081"
+      DATABASE_URI: "postgres://gophermart:gophermart@postgres:5432/gophermart"
+      ACCRUAL_SYSTEM_ADDRESS: "http://accrual:8080"
+      LOG_LEVEL: "DEBUG"
+      POLL_ORDERS_DURATION: "10ms"
+      MAX_ORDER_ATTEMPTS: "3"
+    depends_on:
+      - postgres
+      - accrual
+
+  accrual:
+    container_name: "accrual"
+    ports:
+      - "8080:8080"
+    build:
+      context: .
+      dockerfile: Dockerfile_accrual
+
+  postgres:
+    container_name: "postgres"
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: "gophermart"
+      POSTGRES_USER: "gophermart"
+      POSTGRES_PASSWORD: "gophermart"
+
+volumes:
+  postgres_data:
