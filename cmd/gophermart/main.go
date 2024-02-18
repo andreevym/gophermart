@@ -55,14 +55,10 @@ func main() {
 	jwtConfig := config.JWTConfig{}
 	authService := services.NewAuthService(userService, jwtConfig)
 
-	var (
-		stop = make(chan struct{}) // tells the goroutine to stop
-		done = make(chan struct{}) // tells us that the goroutine exited
-	)
 	// запуск отдельного процесса для процессинга заявок, только если при запуске сервиса был передан адрес accrualService
 	if accrualService != nil {
-		scheduler := scheduler.NewScheduler(accrualService, orderService)
-		scheduler.ProcessingByDelay(done, stop, cfg.PollOrdersDelay, cfg.MaxOrderAttempts)
+		accrualScheduler := scheduler.NewAccrualScheduler(accrualService, orderService, cfg.PollOrdersDelay, cfg.MaxOrderAttempts)
+		defer accrualScheduler.Shutdown()
 	}
 
 	// объявляем все сервисы в одной структуре т.к так удобнее изменять кол-во сервисов
@@ -83,8 +79,6 @@ func main() {
 	if server == nil {
 		log.Fatalf("Server can't be nil: %v", err)
 	}
+	defer server.Shutdown()
 	server.Run(cfg.Address)
-	server.Shutdown()
-	close(stop) // signal the goroutine to stop
-	<-done      // and wait for it to exit
 }
