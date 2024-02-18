@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/andreevym/gofermart/pkg/logger"
+	"github.com/andreevym/gophermart/pkg/logger"
 	"github.com/caarlos0/env"
 	"go.uber.org/zap"
 )

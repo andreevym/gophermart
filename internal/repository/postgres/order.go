@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/andreevym/gofermart/internal/repository"
+	"github.com/andreevym/gophermart/internal/repository"
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/v4/pgxpool"

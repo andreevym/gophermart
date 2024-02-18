@@ -1,4 +1,4 @@
-module github.com/andreevym/gofermart
+module github.com/andreevym/gophermart
 
 go 1.20
 

@@ -4,14 +4,14 @@ import (
 	"context"
 	"log"
 
-	"github.com/andreevym/gofermart/internal/accrual"
-	"github.com/andreevym/gofermart/internal/config"
-	"github.com/andreevym/gofermart/internal/handlers"
-	"github.com/andreevym/gofermart/internal/middleware"
-	"github.com/andreevym/gofermart/internal/repository/postgres"
-	"github.com/andreevym/gofermart/internal/scheduler"
-	"github.com/andreevym/gofermart/internal/server"
-	"github.com/andreevym/gofermart/internal/services"
+	"github.com/andreevym/gophermart/internal/accrual"
+	"github.com/andreevym/gophermart/internal/config"
+	"github.com/andreevym/gophermart/internal/handlers"
+	"github.com/andreevym/gophermart/internal/middleware"
+	"github.com/andreevym/gophermart/internal/repository/postgres"
+	"github.com/andreevym/gophermart/internal/scheduler"
+	"github.com/andreevym/gophermart/internal/server"
+	"github.com/andreevym/gophermart/internal/services"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/andreevym/gofermart/internal/repository"
+	"github.com/andreevym/gophermart/internal/repository"
 )
 
 type TransactionService struct {

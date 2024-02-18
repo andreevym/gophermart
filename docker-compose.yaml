@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-#  gofermart:
+#  gophermart:
 #    build:
 #      context: .
 #      dockerfile: Dockerfile

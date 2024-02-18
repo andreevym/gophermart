@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/ShiraazMoollatjie/goluhn"
-	"github.com/andreevym/gofermart/internal/middleware"
-	"github.com/andreevym/gofermart/internal/repository/postgres"
-	"github.com/andreevym/gofermart/pkg/logger"
+	"github.com/andreevym/gophermart/internal/middleware"
+	"github.com/andreevym/gophermart/internal/repository/postgres"
+	"github.com/andreevym/gophermart/pkg/logger"
 	"go.uber.org/zap"
 )
 

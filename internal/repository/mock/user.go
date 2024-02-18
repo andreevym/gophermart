@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	repository "github.com/andreevym/gofermart/internal/repository"
+	repository "github.com/andreevym/gophermart/internal/repository"
 	gomock "github.com/golang/mock/gomock"
 )
 

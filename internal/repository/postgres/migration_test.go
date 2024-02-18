@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/andreevym/gofermart/internal/repository/postgres"
+	"github.com/andreevym/gophermart/internal/repository/postgres"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 

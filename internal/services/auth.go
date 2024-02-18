@@ -12,7 +12,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/andreevym/gofermart/internal/config"
+	"github.com/andreevym/gophermart/internal/config"
 	"github.com/golang-jwt/jwt"
 )
 

@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"github.com/andreevym/gofermart/internal/services"
+	"github.com/andreevym/gophermart/internal/services"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
