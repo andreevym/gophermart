@@ -18,9 +18,11 @@ type Order struct {
 //
 //go:generate mockgen -source=order.go -destination=./mock/order.go -package=mock
 type OrderRepository interface {
-	CreateOrder(ctx context.Context, order *Order) (*Order, error)
-	GetOrderByNumber(ctx context.Context, number string) (*Order, error)
-	UpdateOrder(ctx context.Context, order *Order) (*Order, error)
+	CreateOrder(ctx context.Context, order Order) error
+	UpdateOrder(ctx context.Context, order Order) error
 	DeleteOrder(ctx context.Context, orderNumber string) error
-	GetOrdersByUserID(ctx context.Context, userID int64) ([]*Order, error)
+
+	GetOrderByNumber(ctx context.Context, number string) (*Order, error)
+	GetOrdersByUserID(ctx context.Context, userID int64) ([]Order, error)
+	GetOrdersByStatus(ctx context.Context, status string) ([]Order, error)
 }

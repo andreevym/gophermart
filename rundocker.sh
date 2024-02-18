@@ -3,12 +3,12 @@
 set -xe
 
 # Set environment variables
-export POSTGRES_USER="gofermart"
-export POSTGRES_PASSWORD="gofermart"
-export POSTGRES_DB="gofermart"
+export POSTGRES_USER="gophermart"
+export POSTGRES_PASSWORD="gophermart"
+export POSTGRES_DB="gophermart"
 export POSTGRES_HOST="postgres"  # Set your PostgreSQL host here
 export POSTGRES_PORT=5432  # Set your PostgreSQL port here
-export APP_PORT=8080  # Set the host port for the Gofermart service
+export APP_PORT=8080  # Set the host port for the gophermart service
 
 
 # Set environment variables

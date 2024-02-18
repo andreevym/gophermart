@@ -1,8 +1,12 @@
 package handlers
 
-import "github.com/andreevym/gofermart/internal/services"
+import (
+	"github.com/andreevym/gophermart/internal/services"
+	"github.com/jackc/pgx/v4/pgxpool"
+)
 
 type ServiceHandlers struct {
+	dbClient           *pgxpool.Pool
 	authService        *services.AuthService
 	userService        *services.UserService
 	orderService       *services.OrderService

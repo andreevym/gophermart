@@ -6,8 +6,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
-	"github.com/andreevym/gofermart/pkg/logger"
+	"github.com/andreevym/gophermart/pkg/logger"
 	"github.com/caarlos0/env"
 	"go.uber.org/zap"
 )
@@ -19,11 +20,13 @@ type JWTConfig struct {
 
 // Config represents the application configuration.
 type Config struct {
-	Address              string    `json:"address" env:"RUN_ADDRESS"`
-	DatabaseURI          string    `json:"databaseURI" env:"DATABASE_URI"`
-	AccrualSystemAddress string    `json:"accrualSystemAddress" env:"ACCRUAL_SYSTEM_ADDRESS"`
-	JWTConfig            JWTConfig `json:"jwt"`
-	LogLevel             string    `json:"logLevel" env:"LOG_LEVEL"`
+	Address              string        `json:"address" env:"RUN_ADDRESS"`
+	DatabaseURI          string        `json:"databaseURI" env:"DATABASE_URI"`
+	AccrualSystemAddress string        `json:"accrualSystemAddress" env:"ACCRUAL_SYSTEM_ADDRESS"`
+	JWTConfig            JWTConfig     `json:"jwt"`
+	LogLevel             string        `json:"logLevel" env:"LOG_LEVEL"`
+	PollOrdersDelay      time.Duration `json:"pollDuration" env:"POLL_ORDERS_DURATION"`
+	MaxOrderAttempts     int           `json:"maxOrderAttempts" env:"MAX_ORDER_ATTEMPTS"`
 }
 
 // NewConfig creates a new Config instance with default values.
@@ -45,6 +48,8 @@ func (c *Config) Parse() error {
 	flag.StringVar(&c.DatabaseURI, "d", "", "Database URI (overrides environment variable)")
 	flag.StringVar(&c.AccrualSystemAddress, "r", "", "Accrual System Address (overrides environment variable)")
 	flag.StringVar(&c.LogLevel, "l", "info", "Logging level [INFO, DEBUG, ERROR]")
+	flag.IntVar(&c.MaxOrderAttempts, "maxOrderAttempts", 3, "Logging level [INFO, DEBUG, ERROR]")
+	flag.DurationVar(&c.PollOrdersDelay, "pollOrdersDuration", 10*time.Millisecond, "duration for handle orders")
 	flag.StringVar(&c.JWTConfig.SecretKey, "j", "", "JWTConfig SecretKey")
 
 	// Parse flags
@@ -66,5 +71,8 @@ func (c *Config) Print() {
 		zap.String("Database URI", c.DatabaseURI),
 		zap.String("Accrual System Address", c.AccrualSystemAddress),
 		zap.String("JWT Secret Key", c.JWTConfig.SecretKey),
+		zap.String("PollOrdersDelay", c.PollOrdersDelay.String()),
+		zap.Int("MaxOrderAttempts", c.MaxOrderAttempts),
+		zap.String("LogLevel", c.LogLevel),
 	)
 }

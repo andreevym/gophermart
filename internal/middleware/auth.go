@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/andreevym/gofermart/internal/services"
-	"github.com/andreevym/gofermart/pkg/logger"
+	"github.com/andreevym/gophermart/internal/services"
+	"github.com/andreevym/gophermart/pkg/logger"
 	"go.uber.org/zap"
 )
 

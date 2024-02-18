@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/andreevym/gofermart/internal/middleware"
-	"github.com/andreevym/gofermart/pkg/logger"
+	"github.com/andreevym/gophermart/internal/middleware"
+	"github.com/andreevym/gophermart/pkg/logger"
 	"go.uber.org/zap"
 )
 
@@ -80,7 +80,7 @@ func (h *ServiceHandlers) GetWithdrawalsHandler(w http.ResponseWriter, r *http.R
 		userWithdrawals = append(userWithdrawals, &userWithdrawal{
 			OrderWithdrawNumber: transaction.OrderNumber,
 			Sum:                 transaction.Amount,
-			ProcessedAt:         transaction.CreatedAt,
+			ProcessedAt:         transaction.Created,
 		})
 	}
 	bytes, err := json.Marshal(userWithdrawals)

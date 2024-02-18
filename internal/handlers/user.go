@@ -9,8 +9,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/andreevym/gofermart/internal/services"
-	"github.com/andreevym/gofermart/pkg/logger"
+	"github.com/andreevym/gophermart/internal/services"
+	"github.com/andreevym/gophermart/pkg/logger"
 	"go.uber.org/zap"
 )
 
@@ -63,7 +63,7 @@ func (h *ServiceHandlers) PostRegisterUser(w http.ResponseWriter, r *http.Reques
 	authToken, err := h.authService.Register(ctx, a.Login, a.Password)
 	if err != nil {
 		logger.Logger().Warn("authService.Register", zap.Error(err))
-		if errors.Is(err, services.ErrAuthAlreadyExists) {
+		if errors.Is(err, services.ErrUserAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)

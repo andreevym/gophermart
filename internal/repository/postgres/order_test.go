@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/andreevym/gofermart/internal/repository"
-	"github.com/andreevym/gofermart/internal/repository/postgres"
+	"github.com/andreevym/gophermart/internal/repository"
+	"github.com/andreevym/gophermart/internal/repository/postgres"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,49 +17,48 @@ func TestOrderRepository(t *testing.T) {
 	repo := postgres.NewOrderRepository(testDB)
 
 	// Create a test order
-	order := &repository.Order{
+	order := repository.Order{
 		Number: "123456",
 		UserID: 1,
 		Status: "pending",
 	}
 
 	// Test CreateOrder
-	createdOrder, err := repo.CreateOrder(context.Background(), order)
+	err = repo.CreateOrder(context.Background(), order)
 	require.NoError(t, err)
-
-	require.NotNil(t, createdOrder)
-	require.NotZero(t, createdOrder.Number)
-
-	order.Number = createdOrder.Number
-	require.Equal(t, order, createdOrder)
 
 	// Test GetOrderByID
-	retrievedOrder, err := repo.GetOrderByNumber(context.Background(), createdOrder.Number)
+	retrievedOrder, err := repo.GetOrderByNumber(context.Background(), order.Number)
 	require.NoError(t, err)
 	require.NotNil(t, retrievedOrder)
-	require.Equal(t, createdOrder.Number, retrievedOrder.Number)
+	require.Equal(t, order.Number, retrievedOrder.Number)
 	//require.Equal(t, createdOrder.UploadedAt, retrievedOrder.UploadedAt)
-	require.Equal(t, createdOrder.Accrual, retrievedOrder.Accrual)
-	require.Equal(t, createdOrder.Number, retrievedOrder.Number)
-	require.Equal(t, createdOrder.UserID, retrievedOrder.UserID)
+	require.Equal(t, order.Accrual, retrievedOrder.Accrual)
+	require.Equal(t, order.Number, retrievedOrder.Number)
+	require.Equal(t, order.UserID, retrievedOrder.UserID)
 
-	// Test GetOrderByNumber
 	retrievedOrderByNumber, err := repo.GetOrderByNumber(context.Background(), order.Number)
 	require.NoError(t, err)
 	require.NotNil(t, retrievedOrderByNumber)
-	//require.Equal(t, createdOrder, retrievedOrderByNumber)
 
 	// Test UpdateOrder
-	orderToUpdate := &repository.Order{
-		Number:  createdOrder.Number,
-		UserID:  1,
+	orderToUpdate := repository.Order{
+		Number:  order.Number,
+		UserID:  order.UserID,
 		Status:  "completed",
 		Accrual: 200,
 	}
-	updatedOrder, err := repo.UpdateOrder(context.Background(), orderToUpdate)
+
+	err = repo.UpdateOrder(context.Background(), orderToUpdate)
 	require.NoError(t, err)
+
+	updatedOrder, err := repo.GetOrderByNumber(context.Background(), order.Number)
+	require.NoError(t, err)
+	require.NotNil(t, retrievedOrderByNumber)
+
 	require.NotNil(t, updatedOrder)
-	require.Equal(t, orderToUpdate, updatedOrder)
+	require.Equal(t, orderToUpdate.Status, updatedOrder.Status)
+	require.Equal(t, orderToUpdate.Accrual, updatedOrder.Accrual)
 
 	// Test GetOrdersByUserID
 	ordersByUserID, err := repo.GetOrdersByUserID(context.Background(), orderToUpdate.UserID)
@@ -69,11 +68,11 @@ func TestOrderRepository(t *testing.T) {
 	//require.Contains(t, ordersByUserID, updatedOrder)
 
 	// Test DeleteOrder
-	err = repo.DeleteOrder(context.Background(), createdOrder.Number)
+	err = repo.DeleteOrder(context.Background(), order.Number)
 	require.NoError(t, err)
 
 	// Verify order is deleted
-	_, err = repo.GetOrderByNumber(context.Background(), createdOrder.Number)
+	_, err = repo.GetOrderByNumber(context.Background(), order.Number)
 	require.Error(t, err)
 	require.EqualError(t, err, postgres.ErrOrderNotFound.Error())
 }

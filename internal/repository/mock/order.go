@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	repository "github.com/andreevym/gofermart/internal/repository"
+	repository "github.com/andreevym/gophermart/internal/repository"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -36,12 +36,11 @@ func (m *MockOrderRepository) EXPECT() *MockOrderRepositoryMockRecorder {
 }
 
 // CreateOrder mocks base method.
-func (m *MockOrderRepository) CreateOrder(ctx context.Context, order *repository.Order) (*repository.Order, error) {
+func (m *MockOrderRepository) CreateOrder(ctx context.Context, order repository.Order) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateOrder", ctx, order)
-	ret0, _ := ret[0].(*repository.Order)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // CreateOrder indicates an expected call of CreateOrder.
@@ -79,11 +78,26 @@ func (mr *MockOrderRepositoryMockRecorder) GetOrderByNumber(ctx, number interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrderByNumber", reflect.TypeOf((*MockOrderRepository)(nil).GetOrderByNumber), ctx, number)
 }
 
+// GetOrdersByStatus mocks base method.
+func (m *MockOrderRepository) GetOrdersByStatus(ctx context.Context, status string) ([]repository.Order, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOrdersByStatus", ctx, status)
+	ret0, _ := ret[0].([]repository.Order)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOrdersByStatus indicates an expected call of GetOrdersByStatus.
+func (mr *MockOrderRepositoryMockRecorder) GetOrdersByStatus(ctx, status interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrdersByStatus", reflect.TypeOf((*MockOrderRepository)(nil).GetOrdersByStatus), ctx, status)
+}
+
 // GetOrdersByUserID mocks base method.
-func (m *MockOrderRepository) GetOrdersByUserID(ctx context.Context, userID int64) ([]*repository.Order, error) {
+func (m *MockOrderRepository) GetOrdersByUserID(ctx context.Context, userID int64) ([]repository.Order, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOrdersByUserID", ctx, userID)
-	ret0, _ := ret[0].([]*repository.Order)
+	ret0, _ := ret[0].([]repository.Order)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -95,12 +109,11 @@ func (mr *MockOrderRepositoryMockRecorder) GetOrdersByUserID(ctx, userID interfa
 }
 
 // UpdateOrder mocks base method.
-func (m *MockOrderRepository) UpdateOrder(ctx context.Context, order *repository.Order) (*repository.Order, error) {
+func (m *MockOrderRepository) UpdateOrder(ctx context.Context, order repository.Order) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateOrder", ctx, order)
-	ret0, _ := ret[0].(*repository.Order)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // UpdateOrder indicates an expected call of UpdateOrder.

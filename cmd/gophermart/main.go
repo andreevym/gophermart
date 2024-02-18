@@ -2,16 +2,16 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 
-	"github.com/andreevym/gofermart/internal/accrual"
-	"github.com/andreevym/gofermart/internal/config"
-	"github.com/andreevym/gofermart/internal/handlers"
-	"github.com/andreevym/gofermart/internal/middleware"
-	"github.com/andreevym/gofermart/internal/repository/postgres"
-	"github.com/andreevym/gofermart/internal/server"
-	"github.com/andreevym/gofermart/internal/services"
+	"github.com/andreevym/gophermart/internal/accrual"
+	"github.com/andreevym/gophermart/internal/config"
+	"github.com/andreevym/gophermart/internal/handlers"
+	"github.com/andreevym/gophermart/internal/middleware"
+	"github.com/andreevym/gophermart/internal/repository/postgres"
+	"github.com/andreevym/gophermart/internal/scheduler"
+	"github.com/andreevym/gophermart/internal/server"
+	"github.com/andreevym/gophermart/internal/services"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
@@ -21,8 +21,7 @@ func main() {
 
 	// Parse the configuration from flags and environment variables
 	if err := cfg.Parse(); err != nil {
-		fmt.Printf("Error parsing configuration: %s\n", err)
-		return
+		log.Fatalf("Error parsing configuration: %v", err)
 	}
 
 	// Print the configuration
@@ -42,40 +41,45 @@ func main() {
 		log.Fatalf("Failed to apply database migrations: %v", err)
 	}
 
-	accrualService := accrual.NewAccrualService(cfg.AccrualSystemAddress)
-
-	// Create services and repositories
-	userService := services.NewUserService(postgres.NewUserRepository(db))
-	orderService := services.NewOrderService(postgres.NewOrderRepository(db), accrualService)
-
+	// Create repositories
 	transactionRepository := postgres.NewTransactionRepository(db)
+	userRepository := postgres.NewUserRepository(db)
+	orderRepository := postgres.NewOrderRepository(db)
 
+	// Create services
+	accrualService := accrual.NewAccrualService(cfg.AccrualSystemAddress)
+	userService := services.NewUserService(userRepository)
 	transactionService := services.NewTransactionService(transactionRepository)
+	orderService := services.NewOrderService(transactionService, orderRepository, accrualService)
 
 	jwtConfig := config.JWTConfig{}
 	authService := services.NewAuthService(userService, jwtConfig)
 
+	// запуск отдельного процесса для процессинга заявок, только если при запуске сервиса был передан адрес accrualService
+	if accrualService != nil {
+		accrualScheduler := scheduler.NewAccrualScheduler(accrualService, orderService, cfg.PollOrdersDelay, cfg.MaxOrderAttempts)
+		defer accrualScheduler.Shutdown()
+		accrualScheduler.Run()
+	}
+
+	// объявляем все сервисы в одной структуре т.к так удобнее изменять кол-во сервисов
+	// которые мы будем использовать в обработчике
 	serviceHandlers := handlers.NewServiceHandlers(
 		authService,
 		userService,
 		orderService,
 		transactionService,
 	)
-
-	// Create router with tracer
 	router := handlers.NewRouter(
 		serviceHandlers,
 		middleware.NewAuthMiddleware(authService).WithAuthentication,
 		middleware.RequestLoggerMiddleware,
 	)
 
-	// Create server
 	server := server.NewServer(router)
 	if server == nil {
-		panic("server can't be nil")
+		log.Fatalf("Server can't be nil: %v", err)
 	}
-
-	// Run server
+	defer server.Shutdown()
 	server.Run(cfg.Address)
-	server.Shutdown()
 }

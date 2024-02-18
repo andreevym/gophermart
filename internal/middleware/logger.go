@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/andreevym/gofermart/pkg/logger"
+	"github.com/andreevym/gophermart/pkg/logger"
 	"go.uber.org/zap"
 )
 

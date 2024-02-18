@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/andreevym/gofermart/internal/repository"
+	"github.com/andreevym/gophermart/internal/repository"
 )
 
 type TransactionService struct {
@@ -17,7 +17,7 @@ const (
 )
 
 func (s TransactionService) Withdraw(ctx context.Context, fromUserID int64, amount float32, orderNumber string) error {
-	transaction := &repository.Transaction{
+	transaction := repository.Transaction{
 		FromUserID:    fromUserID,
 		ToUserID:      WithdrawUserID,
 		Amount:        amount,
@@ -65,7 +65,7 @@ func (s TransactionService) GetWithdrawBalance(ctx context.Context, userID int64
 	return balance, nil
 }
 
-func (s TransactionService) GetWithdrawTransaction(ctx context.Context, userID int64) ([]*repository.Transaction, error) {
+func (s TransactionService) GetWithdrawTransaction(ctx context.Context, userID int64) ([]repository.Transaction, error) {
 	transactions, err := s.transactionRepository.GetTransactionsByUserIDAndOperationType(ctx, userID, repository.WithdrawOperationType)
 	if err != nil {
 		return nil, fmt.Errorf("get user account by user id '%d': %w", userID, err)
@@ -73,10 +73,10 @@ func (s TransactionService) GetWithdrawTransaction(ctx context.Context, userID i
 	return transactions, nil
 }
 
-func (s TransactionService) AccrualAmount(ctx context.Context, userID int64, orderNumber string, accrual float32) error {
-	err := s.transactionRepository.AccrualAmount(ctx, userID, orderNumber, accrual)
+func (s TransactionService) AccrualAmount(ctx context.Context, orderUserID int64, orderNumber string, orderAccrual float32, orderStatus string) error {
+	err := s.transactionRepository.AccrualAmount(ctx, orderUserID, orderNumber, orderAccrual, orderStatus)
 	if err != nil {
-		return fmt.Errorf("failed to accrual amount '%d': %w", userID, err)
+		return fmt.Errorf("failed to accrual amount for userID '%d' and order number %s: %w", orderUserID, orderNumber, err)
 	}
 
 	return nil

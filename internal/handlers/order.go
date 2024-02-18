@@ -3,7 +3,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -11,22 +10,10 @@ import (
 	"time"
 
 	"github.com/ShiraazMoollatjie/goluhn"
-	"github.com/andreevym/gofermart/internal/middleware"
-	"github.com/andreevym/gofermart/internal/repository"
-	"github.com/andreevym/gofermart/internal/repository/postgres"
-	"github.com/andreevym/gofermart/pkg/logger"
+	"github.com/andreevym/gophermart/internal/middleware"
+	"github.com/andreevym/gophermart/internal/repository/postgres"
+	"github.com/andreevym/gophermart/pkg/logger"
 	"go.uber.org/zap"
-)
-
-const (
-	// RegisteredOrderStatus заказ зарегистрирован, но начисление не рассчитано;
-	RegisteredOrderStatus string = "REGISTERED"
-	// InvalidOrderStatus заказ не принят к расчёту, и вознаграждение не будет начислено;
-	InvalidOrderStatus string = "INVALID"
-	// ProcessingOrderStatus расчёт начисления в процессе;
-	ProcessingOrderStatus string = "PROCESSING"
-	// ProcessedOrderStatus расчёт начисления окончен;
-	ProcessedOrderStatus string = "PROCESSED"
 )
 
 type GetOrdersResponseDTO struct {
@@ -100,16 +87,19 @@ func (h *ServiceHandlers) GetOrdersHandler(w http.ResponseWriter, r *http.Reques
 	ctx := r.Context()
 	userID, err := middleware.GetUserID(ctx)
 	if err != nil {
+		logger.Logger().Warn("GetOrdersHandler: get user id", zap.Error(err))
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	foundOrders, err := h.orderService.OrderRepository.GetOrdersByUserID(ctx, userID)
 	if err != nil {
+		logger.Logger().Warn("GetOrdersHandler: get orders by user id", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	if len(foundOrders) == 0 {
+		logger.Logger().Debug("GetOrdersHandler: get orders by user id: not found")
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -126,11 +116,13 @@ func (h *ServiceHandlers) GetOrdersHandler(w http.ResponseWriter, r *http.Reques
 	}
 	bytes, err := json.Marshal(respDTOs)
 	if err != nil {
+		logger.Logger().Debug("GetOrdersHandler: json marshal")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	_, err = w.Write(bytes)
 	if err != nil {
+		logger.Logger().Debug("GetOrdersHandler: write bytes")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -167,12 +159,14 @@ func (h *ServiceHandlers) PostOrdersHandler(w http.ResponseWriter, r *http.Reque
 	ctx := r.Context()
 	userID, err := middleware.GetUserID(ctx)
 	if err != nil {
+		logger.Logger().Warn("PostOrdersHandler: get user id", zap.Error(err))
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	bytes, err := io.ReadAll(r.Body)
 	if err != nil {
+		logger.Logger().Warn("PostOrdersHandler: read all", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -181,12 +175,14 @@ func (h *ServiceHandlers) PostOrdersHandler(w http.ResponseWriter, r *http.Reque
 
 	err = goluhn.Validate(orderNumber)
 	if err != nil {
+		logger.Logger().Warn("PostOrdersHandler: validate order number", zap.Error(err), zap.String("orderNumber", orderNumber))
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
 
 	existsOrder, err := h.orderService.GetOrderByNumber(ctx, orderNumber)
 	if err != nil && !errors.Is(err, postgres.ErrOrderNotFound) {
+		logger.Logger().Warn("PostOrdersHandler: get order by number", zap.Error(err), zap.String("orderNumber", orderNumber))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -199,36 +195,12 @@ func (h *ServiceHandlers) PostOrdersHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	newOrder := &repository.Order{
-		Number:     orderNumber,
-		UserID:     userID,
-		Status:     ProcessingOrderStatus,
-		UploadedAt: time.Now(),
-	}
-	_, err = h.orderService.OrderRepository.CreateOrder(ctx, newOrder)
+	err = h.orderService.NewOrder(ctx, orderNumber, userID)
 	if err != nil {
+		logger.Logger().Warn("PostOrdersHandler: create order", zap.Error(err), zap.String("orderNumber", orderNumber))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	go func() {
-		ctx := context.Background()
-		time.Sleep(10 + time.Millisecond)
-
-		updatedOrder, err := h.orderService.WaitAccrual(newOrder.Number)
-		if err != nil {
-			logger.Logger().Error("order service: wait accrual", zap.Error(err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if updatedOrder != nil {
-			err = h.transactionService.AccrualAmount(ctx, userID, updatedOrder.Number, updatedOrder.Accrual)
-			if err != nil {
-				logger.Logger().Error("transfer service: accrual amount", zap.Error(err))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		}
-	}()
 	w.WriteHeader(http.StatusAccepted)
 }

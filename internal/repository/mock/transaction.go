@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	repository "github.com/andreevym/gofermart/internal/repository"
+	repository "github.com/andreevym/gophermart/internal/repository"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -35,8 +35,22 @@ func (m *MockTransactionRepository) EXPECT() *MockTransactionRepositoryMockRecor
 	return m.recorder
 }
 
+// AccrualAmount mocks base method.
+func (m *MockTransactionRepository) AccrualAmount(ctx context.Context, userID int64, orderNumber string, accrual float32, orderStatus string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AccrualAmount", ctx, userID, orderNumber, accrual, orderStatus)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AccrualAmount indicates an expected call of AccrualAmount.
+func (mr *MockTransactionRepositoryMockRecorder) AccrualAmount(ctx, userID, orderNumber, accrual, orderStatus interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AccrualAmount", reflect.TypeOf((*MockTransactionRepository)(nil).AccrualAmount), ctx, userID, orderNumber, accrual, orderStatus)
+}
+
 // CreateTransaction mocks base method.
-func (m *MockTransactionRepository) CreateTransaction(ctx context.Context, transaction *repository.Transaction) (*repository.Transaction, error) {
+func (m *MockTransactionRepository) CreateTransaction(ctx context.Context, transaction repository.Transaction) (*repository.Transaction, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateTransaction", ctx, transaction)
 	ret0, _ := ret[0].(*repository.Transaction)
@@ -79,11 +93,26 @@ func (mr *MockTransactionRepositoryMockRecorder) GetTransactionByID(ctx, transac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransactionByID", reflect.TypeOf((*MockTransactionRepository)(nil).GetTransactionByID), ctx, transactionID)
 }
 
+// GetTransactionsByUserID mocks base method.
+func (m *MockTransactionRepository) GetTransactionsByUserID(ctx context.Context, userID int64) ([]repository.Transaction, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTransactionsByUserID", ctx, userID)
+	ret0, _ := ret[0].([]repository.Transaction)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTransactionsByUserID indicates an expected call of GetTransactionsByUserID.
+func (mr *MockTransactionRepositoryMockRecorder) GetTransactionsByUserID(ctx, userID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransactionsByUserID", reflect.TypeOf((*MockTransactionRepository)(nil).GetTransactionsByUserID), ctx, userID)
+}
+
 // GetTransactionsByUserIDAndOperationType mocks base method.
-func (m *MockTransactionRepository) GetTransactionsByUserIDAndOperationType(ctx context.Context, userID int64, operationType string) ([]*repository.Transaction, error) {
+func (m *MockTransactionRepository) GetTransactionsByUserIDAndOperationType(ctx context.Context, userID int64, operationType string) ([]repository.Transaction, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTransactionsByUserIDAndOperationType", ctx, userID, operationType)
-	ret0, _ := ret[0].([]*repository.Transaction)
+	ret0, _ := ret[0].([]repository.Transaction)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -95,12 +124,11 @@ func (mr *MockTransactionRepositoryMockRecorder) GetTransactionsByUserIDAndOpera
 }
 
 // UpdateTransaction mocks base method.
-func (m *MockTransactionRepository) UpdateTransaction(ctx context.Context, transaction *repository.Transaction) (*repository.Transaction, error) {
+func (m *MockTransactionRepository) UpdateTransaction(ctx context.Context, transaction repository.Transaction) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateTransaction", ctx, transaction)
-	ret0, _ := ret[0].(*repository.Transaction)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // UpdateTransaction indicates an expected call of UpdateTransaction.

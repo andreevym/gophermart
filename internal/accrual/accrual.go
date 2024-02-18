@@ -27,8 +27,8 @@ type OrderAccrual struct {
 	Accrual float32 `json:"accrual"`
 }
 
-// GetOrderByNumber получение информации о расчёте начислений баллов лояльности.
-func (as AccrualService) GetOrderByNumber(orderNumber string) (*OrderAccrual, error) {
+// RequestAccrualByOrderNumber получение информации о расчёте начислений баллов лояльности.
+func (as AccrualService) RequestAccrualByOrderNumber(orderNumber string) (*OrderAccrual, error) {
 	if as.url == "" {
 		return nil, ErrAccrualServiceDisabled
 	}
@@ -53,6 +53,14 @@ func (as AccrualService) GetOrderByNumber(orderNumber string) (*OrderAccrual, er
 	err = json.Unmarshal(readAll, &orderAccrual)
 	if err != nil {
 		return nil, fmt.Errorf("json.Unmarshal: %w", err)
+	}
+
+	if orderAccrual.Order != orderNumber {
+		return nil, fmt.Errorf(
+			"failed to get order from AccrualService: received wrong order number %s, bug expected %s",
+			orderAccrual.Order,
+			orderNumber,
+		)
 	}
 
 	return &orderAccrual, nil

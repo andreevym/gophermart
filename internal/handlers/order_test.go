@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/andreevym/gofermart/internal/config"
-	"github.com/andreevym/gofermart/internal/middleware"
-	"github.com/andreevym/gofermart/internal/repository"
-	"github.com/andreevym/gofermart/internal/repository/mock"
-	"github.com/andreevym/gofermart/internal/services"
+	"github.com/andreevym/gophermart/internal/config"
+	"github.com/andreevym/gophermart/internal/middleware"
+	"github.com/andreevym/gophermart/internal/repository"
+	"github.com/andreevym/gophermart/internal/repository/mock"
+	"github.com/andreevym/gophermart/internal/services"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,7 +51,7 @@ func TestPostOrdersHandler(t *testing.T) {
 			existsOrder: &repository.Order{
 				Number: "12345678903",
 				UserID: testUser,
-				Status: RegisteredOrderStatus,
+				Status: services.RegisteredOrderStatus,
 			},
 		},
 		{
@@ -65,7 +65,7 @@ func TestPostOrdersHandler(t *testing.T) {
 			existsOrder: &repository.Order{
 				Number: "12345678903",
 				UserID: testUser + 1,
-				Status: RegisteredOrderStatus,
+				Status: services.RegisteredOrderStatus,
 			},
 		},
 	}
@@ -83,9 +83,9 @@ func TestPostOrdersHandler(t *testing.T) {
 				mockOrderRepository.EXPECT().GetOrderByNumber(gomock.Any(), test.newOrderNumber).Return(test.existsOrder, nil).Times(1)
 			} else {
 				mockOrderRepository.EXPECT().GetOrderByNumber(gomock.Any(), test.newOrderNumber).Return(nil, nil).Times(1)
-				mockOrderRepository.EXPECT().CreateOrder(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockOrderRepository.EXPECT().CreateOrder(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			}
-			orderService := services.NewOrderService(mockOrderRepository, nil)
+			orderService := services.NewOrderService(nil, mockOrderRepository, nil)
 
 			jwtConfig := config.JWTConfig{}
 			authService := services.NewAuthService(userService, jwtConfig)
@@ -131,7 +131,7 @@ func TestGetOrdersHandler(t *testing.T) {
 		requestPath   string
 		searchOrderID string
 		httpMethod    string
-		existsOrders  []*repository.Order
+		existsOrders  []repository.Order
 	}{
 		{
 			name: "order not found and no error",
@@ -152,17 +152,17 @@ func TestGetOrdersHandler(t *testing.T) {
 			requestPath:   "/api/user/orders",
 			searchOrderID: "12345678903",
 			httpMethod:    http.MethodGet,
-			existsOrders: []*repository.Order{
+			existsOrders: []repository.Order{
 				{
 					Number:     "1",
 					UserID:     testUser,
-					Status:     RegisteredOrderStatus,
+					Status:     services.RegisteredOrderStatus,
 					UploadedAt: uploadedAtTime2,
 				},
 				{
 					Number:     "2",
 					UserID:     testUser,
-					Status:     RegisteredOrderStatus,
+					Status:     services.RegisteredOrderStatus,
 					UploadedAt: uploadedAtTime3,
 				},
 			},
@@ -176,11 +176,11 @@ func TestGetOrdersHandler(t *testing.T) {
 			requestPath:   "/api/user/orders",
 			searchOrderID: "12345678903",
 			httpMethod:    http.MethodGet,
-			existsOrders: []*repository.Order{
+			existsOrders: []repository.Order{
 				{
 					Number:     "12345678903",
 					UserID:     testUser,
-					Status:     ProcessedOrderStatus,
+					Status:     services.ProcessedOrderStatus,
 					Accrual:    1,
 					UploadedAt: uploadedAtTime,
 				},
@@ -195,11 +195,11 @@ func TestGetOrdersHandler(t *testing.T) {
 			requestPath:   "/api/user/orders",
 			searchOrderID: "12345678903",
 			httpMethod:    http.MethodGet,
-			existsOrders: []*repository.Order{
+			existsOrders: []repository.Order{
 				{
 					Number:  "12345678903",
 					UserID:  testUser,
-					Status:  ProcessingOrderStatus,
+					Status:  services.ProcessingOrderStatus,
 					Accrual: 1,
 				},
 			},
@@ -219,7 +219,7 @@ func TestGetOrdersHandler(t *testing.T) {
 			} else {
 				mockOrderRepository.EXPECT().GetOrdersByUserID(gomock.Any(), testUser).Return(nil, nil).Times(1)
 			}
-			orderService := services.NewOrderService(mockOrderRepository, nil)
+			orderService := services.NewOrderService(nil, mockOrderRepository, nil)
 
 			jwtConfig := config.JWTConfig{}
 			authService := services.NewAuthService(userService, jwtConfig)

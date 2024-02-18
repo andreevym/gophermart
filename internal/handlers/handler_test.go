@@ -15,7 +15,9 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, reqBody
 	req, err := http.NewRequest(method, ts.URL+path, reqBody)
 	require.NoError(t, err)
 
-	resp, err := ts.Client().Do(req)
+	client := ts.Client()
+	require.NotNil(t, client)
+	resp, err := client.Do(req)
 	require.NoError(t, err)
 
 	respBody, err := io.ReadAll(resp.Body)

@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	repository "github.com/andreevym/gofermart/internal/repository"
+	repository "github.com/andreevym/gophermart/internal/repository"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -36,12 +36,11 @@ func (m *MockUserRepository) EXPECT() *MockUserRepositoryMockRecorder {
 }
 
 // CreateUser mocks base method.
-func (m *MockUserRepository) CreateUser(ctx context.Context, user *repository.User) (*repository.User, error) {
+func (m *MockUserRepository) CreateUser(ctx context.Context, user repository.User) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateUser", ctx, user)
-	ret0, _ := ret[0].(*repository.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // CreateUser indicates an expected call of CreateUser.
@@ -95,12 +94,11 @@ func (mr *MockUserRepositoryMockRecorder) GetUserByUsername(ctx, username interf
 }
 
 // UpdateUser mocks base method.
-func (m *MockUserRepository) UpdateUser(ctx context.Context, user *repository.User) (*repository.User, error) {
+func (m *MockUserRepository) UpdateUser(ctx context.Context, user repository.User) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUser", ctx, user)
-	ret0, _ := ret[0].(*repository.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // UpdateUser indicates an expected call of UpdateUser.
